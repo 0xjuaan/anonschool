@@ -12,6 +12,7 @@
     "mailauth": "^4.9.5",
     "@semaphore-protocol/group": "^4.8.4",
     "@semaphore-protocol/proof": "^4.8.4",
+    "@semaphore-protocol/identity": "^4.7.1",
     "snarkjs": "^0.7.5",
     "@aztec/bb.js": "0.82.2",
     "@noble/ed25519": "^2.2.3",

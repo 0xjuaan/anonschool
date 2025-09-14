@@ -47,3 +47,18 @@ export async function buildGroup() {
   };
 }
 
+export async function merkleProofForMember(idCommitment: string) {
+  const members = await fetchIdCommitments();
+  members.sort();
+  const group = new Group(members as unknown as bigint[]);
+  const index = group.indexOf(idCommitment);
+  if (index < 0) {
+    throw new Error("member_not_found");
+  }
+  const merkle = group.generateMerkleProof(index);
+  return {
+    root: merkle.root.toString(),
+    index: merkle.index,
+    siblings: merkle.siblings.map((s) => s.toString()),
+  };
+}
