@@ -5,8 +5,8 @@ const ID_STORAGE_KEY = "ns.identity.v1";
 const SCOPE = process.env.NEXT_PUBLIC_SEMAPHORE_SCOPE || "ns-forum-v1";
 
 export type StoredIdentity = {
-  trapdoor: string;
-  nullifier: string;
+  privateKey: string;
+  secretScalar: string;
 };
 
 export function loadIdentity(): Identity | null {
@@ -14,7 +14,7 @@ export function loadIdentity(): Identity | null {
     const raw = localStorage.getItem(ID_STORAGE_KEY);
     if (!raw) return null;
     const parsed: StoredIdentity = JSON.parse(raw);
-    const id = new Identity({ trapdoor: BigInt(parsed.trapdoor), nullifier: BigInt(parsed.nullifier) });
+    const id = new Identity(parsed.privateKey);
     return id;
   } catch {
     return null;
@@ -31,8 +31,8 @@ export function ensureIdentity(): Identity {
 
 export function persistIdentity(id: Identity) {
   const data: StoredIdentity = {
-    trapdoor: id.trapdoor.toString(),
-    nullifier: id.nullifier.toString(),
+    privateKey: JSON.stringify(Array.from(id.privateKey as Uint8Array)),
+    secretScalar: id.secretScalar.toString(),
   };
   localStorage.setItem(ID_STORAGE_KEY, JSON.stringify(data));
 }

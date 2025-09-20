@@ -64,16 +64,38 @@ export async function verifyDkimAndSubject(
   const auth = await authenticateMail(eml);
   const dkim = auth?.dkim as any;
   const results = dkim?.results || [];
-  const passed = results.find((r: any) => r?.status?.result === "pass");
+  const passed = results.find((r) => 
+    r?.status?.result === "pass" || 
+    (r?.status?.result === "neutral" && r?.status?.comment === "expired")
+  );
 
   if (!passed) {
     return { ok: false, reason: "dkim_fail", details: { results } } as const;
   }
 
+  
+
   const signingDomain: string = (passed.signingDomain || "").toLowerCase();
   const iHeader: string = (passed.status?.header?.i || "").toLowerCase();
   const identityDomain = iHeader.startsWith("@") ? iHeader.slice(1) : iHeader;
-
+  // Additional validation for expired signatures
+  if (passed.status?.result === "neutral" && passed.status?.comment === "expired") {
+    // Ensure the signature is from the expected domain
+    if (signingDomain !== expectedDomain && !signingDomain.endsWith(`.${expectedDomain}`)) {
+      console.log("Expired DKIM signature from wrong domain:", signingDomain);
+      return { 
+        ok: false, 
+        reason: "dkim_fail", 
+        details: { results, reason: "expired_signature_wrong_domain" } 
+      } as const;
+    }
+    
+    // Ensure the signature has the required structure
+    if (!passed.signature || !passed.signingDomain || !passed.selector) {
+      console.log("Expired DKIM signature missing required fields");
+      return { ok: false, reason: "dkim_fail", details: { results, reason: "expired_signature_incomplete" } } as const;
+    }
+  }
   const matchDomain = (d: string) => d === expectedDomain || d.endsWith(`.${expectedDomain}`);
   const domainAligned = matchDomain(signingDomain) || matchDomain(identityDomain) || matchDomain(fromDomain);
 

@@ -26,15 +26,32 @@ const NSForumPage: React.FC = () => {
       .then((j) => setItems(j.items || []))
       .catch(() => setItems([]));
 
-    // Check if identity exists
-    try {
-      const id = ensureIdentity();
-      const c = getIdCommitmentString(id);
-      setJoinNeeded(!c);
-    } catch {
-      setJoinNeeded(true);
+
+    async function checkJoinStatus() {
+      // Check if identity exists
+      try {
+        const id = ensureIdentity();
+        const c = getIdCommitmentString(id);
+
+
+
+        // to check membership, we use semaphore to find out
+        // if the proof is valid, then the user is a member
+        const res = await fetch(`/api/group/proof?idCommitment=${encodeURIComponent(c)}`);
+        if (!res.ok) {
+          setJoinNeeded(true);
+          return;
+        }
+
+        const hasMembership = res.ok;
+          setJoinNeeded(!hasMembership);
+      } catch {
+        setJoinNeeded(true);
+      }
     }
+    checkJoinStatus();
     setReady(true);
+    console.log("joinNeeded", joinNeeded);
   }, []);
 
   async function onPost() {

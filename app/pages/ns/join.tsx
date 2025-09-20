@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useRouter } from "next/router";
 import { ensureIdentity, getIdCommitmentString, registerWithEml } from "../../lib/ns-client";
 
 const JoinNSPage: React.FC = () => {
   const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -23,12 +25,17 @@ const JoinNSPage: React.FC = () => {
       const text = await file.text();
       const result = await registerWithEml(text, commit);
       if (result?.ok) {
-        setStatus("Success! You can now post anonymously.");
+        setStatus("Success! Redirecting to the forum...");
+        // Redirect to the /ns page after successful registration
+        setTimeout(() => {
+          router.push("/ns");
+        }, 1500);
       } else {
         setStatus("Registration failed. Please check your email file.");
       }
-    } catch (err: any) {
-      setStatus(err?.message || "Registration error.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Registration error.";
+      setStatus(errorMessage);
     } finally {
       setLoading(false);
     }
