@@ -25,7 +25,11 @@ export async function fetchIdCommitments(): Promise<string[]> {
 
   const commitments: string[] = [];
   for (const row of data || []) {
-    const args = row.proof_args as any;
+    // Parse the JSON string from proof_args
+    const args = typeof row.proof_args === 'string' 
+      ? JSON.parse(row.proof_args) 
+      : row.proof_args;
+
     const c = args?.idCommitment;
     if (typeof c === "string" && c.length > 0 && c !== "0") {
       commitments.push(c);
