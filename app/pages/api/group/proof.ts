@@ -15,8 +15,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const proof = await merkleProofForMember(idCommitment);
     return res.status(200).json({ ok: true, proof });
-  } catch (e: any) {
-    if (e?.message === "member_not_found") {
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message === "member_not_found") {
       return res.status(404).json({ ok: false, error: "member_not_found" });
     }
     // eslint-disable-next-line no-console

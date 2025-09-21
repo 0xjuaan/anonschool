@@ -26,7 +26,11 @@ const JoinNSPage: React.FC = () => {
       const result = await registerWithEml(text, commit);
       if (result?.ok) {
         if (result.alreadyRegistered) {
-          setStatus("You are already logged in with this email! Redirecting to the forum...");
+          setStatus("You are already registered with this email! Using your current identity...");
+          // The identity is already created and stored above
+          // No need to create a new one - use the existing one
+        } else if (result.reRegistered) {
+          setStatus("Email re-registered with new identity! Redirecting to the forum...");
         } else {
           setStatus("Success! Redirecting to the forum...");
         }

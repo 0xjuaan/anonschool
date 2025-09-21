@@ -69,7 +69,18 @@ export async function generateMerkleProof(commitment: string) {
  */
 export async function merkleProofForMember(idCommitment: string) {
   await groupManager.initialize();
-  const merkle = groupManager.generateMerkleProof(idCommitment);
+  let merkle;
+  try {
+    merkle = groupManager.generateMerkleProof(idCommitment);
+  } catch (e) {
+    // If member not found, refresh from DB once to avoid stale in-memory state
+    if (e instanceof Error && e.message === 'Member not found in group') {
+      await groupManager.reinitialize();
+      merkle = groupManager.generateMerkleProof(idCommitment);
+    } else {
+      throw e;
+    }
+  }
   return {
     root: merkle.root.toString(),
     index: merkle.index,

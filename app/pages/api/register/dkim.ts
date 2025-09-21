@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { verifyDkimAndSubject, sha256Hex } from "../../../lib/dkim";
 import { addMemberToGroup } from "../../../lib/semaphore-group";
+import SemaphoreGroupManager from "../../../lib/semaphore-group-manager";
 
 export const config = {
   api: {
@@ -37,6 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const raw = typeof emlBase64 === "string" ? Buffer.from(emlBase64, "base64").toString("utf8") : String(eml);
 
+    // TODO: use zk-email for verification with privacy
     const verification = await verifyDkimAndSubject(raw, {
       expectedDomain: NS_DOMAIN,
       expectedSubject: NS_ACCEPT_SUBJECT,
@@ -51,20 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Use DKIM signature as unique discriminator for this email
     // This prevents the same email from being registered multiple times
     const emailSignature = dkim?.signature || sha256Hex(`${messageId}|${NS_DOMAIN}`);
-    const pubkey: string = typeof idCommitment === "string" && idCommitment.length > 0
-      ? idCommitment
-      : `dkim_${emailSignature.slice(0, 32)}`;
 
-    // Check if this email signature is already registered
-    const { data: existingMembership } = await supabase
-      .from("memberships")
-      .select("pubkey, proof_args")
-      .eq("provider", "dkim")
-      .eq("group_id", NS_DOMAIN)
-      .eq("pubkey", pubkey)
-      .single();
-
-    // Also check by email signature to prevent duplicate emails with different idCommitments
+    // Look up by signature (single source of truth for dedup)
     const { data: existingBySignature } = await supabase
       .from("memberships")
       .select("pubkey, proof_args")
@@ -73,54 +63,115 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq("proof_args->>signature", emailSignature)
       .single();
 
-    if (existingMembership || existingBySignature) {
-      const existingPubkey = existingMembership?.pubkey || existingBySignature?.pubkey;
-      const isDifferentCommitment = existingBySignature && existingBySignature.pubkey !== pubkey;
-      
-      return res.status(200).json({ 
-        ok: true, 
-        groupId: NS_DOMAIN, 
-        pubkey: existingPubkey, 
+    // Extract old commitment if present
+    const oldArgs = existingBySignature?.proof_args;
+
+
+
+    const oldCommitment: string | undefined = oldArgs?.idCommitment || undefined;
+
+    const newCommitment: string | undefined = (typeof idCommitment === 'string' && idCommitment.length > 0)
+      ? idCommitment
+      : undefined;
+
+    // If no record exists: create
+    if (!existingBySignature) {
+      const providerName = "dkim";
+      const proof = dkim ? JSON.stringify(dkim) : JSON.stringify({});
+      const proofArgs = {
+        domain: NS_DOMAIN,
+        messageId,
+        subject,
+        idCommitment: newCommitment || null,
+        summary,
+        signature: emailSignature,
+      };
+
+      const insertPubkey = newCommitment || `dkim_${emailSignature.slice(0, 32)}`;
+      const { error: insertError } = await supabase.from("memberships").insert([
+        {
+          provider: providerName,
+          pubkey: insertPubkey,
+          pubkey_expiry: null,
+          proof,
+          proof_args: proofArgs,
+          group_id: NS_DOMAIN,
+        },
+      ]);
+      if (insertError) throw new Error(`Supabase insert failed: ${insertError.message}`);
+
+      if (newCommitment) {
+        await addMemberToGroup(newCommitment);
+      }
+
+      return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey: insertPubkey, summary });
+    }
+
+    // Record exists for this signature
+    const existingPubkey: string = existingBySignature.pubkey;
+
+    // If caller didn't provide a new commitment, return alreadyRegistered
+    if (!newCommitment) {
+      return res.status(200).json({
+        ok: true,
+        groupId: NS_DOMAIN,
+        pubkey: existingPubkey,
         alreadyRegistered: true,
-        message: isDifferentCommitment 
-          ? "This email is already registered with a different identity. Each email can only be registered once."
-          : "This email has already been registered! You can only register once per email."
+        message: "This email is already registered."
       });
     }
 
-    const providerName = "dkim";
+    // If the provided commitment matches the stored one, return alreadyRegistered
+    if (oldCommitment && oldCommitment === newCommitment) {
+      return res.status(200).json({
+        ok: true,
+        groupId: NS_DOMAIN,
+        pubkey: existingPubkey,
+        alreadyRegistered: true,
+        message: "Already registered with this identity."
+      });
+    }
 
+    console.log("MADE IT TO RE-REGISTRATION");
+
+    // Re-registration with a new commitment: update DB and group
+    const providerName = "dkim";
     const proof = dkim ? JSON.stringify(dkim) : JSON.stringify({});
-    const proofArgs = JSON.stringify({
+    const proofArgs = {
       domain: NS_DOMAIN,
       messageId,
       subject,
-      idCommitment: idCommitment || null,
+      idCommitment: newCommitment,
       summary,
-      signature: emailSignature, // Store signature for deduplication
-    });
+      signature: emailSignature,
+    };
 
-    const { error } = await supabase.from("memberships").insert([
-      {
-        provider: providerName,
-        pubkey,
-        pubkey_expiry: null,
+    console.log(`🔍!!! Updating membership for commitment: ${newCommitment}`);
+
+    const { error: updateError } = await supabase
+      .from("memberships")
+      .update({
+        pubkey: newCommitment,
         proof,
         proof_args: proofArgs,
-        group_id: NS_DOMAIN,
-      },
-    ]);
+      })
+      .eq("provider", providerName)
+      .eq("group_id", NS_DOMAIN)
+      .eq("proof_args->>signature", emailSignature);
 
-    if (error) {
-      throw new Error(`Supabase insert failed: ${error.message}`);
+    if (updateError) throw new Error(`Supabase update failed: ${updateError.message}`);
+
+    // Update group incrementally
+    const groupManager = SemaphoreGroupManager.getInstance();
+    if (oldCommitment) {
+      groupManager.updateMemberByCommitment(oldCommitment, newCommitment);
+    } else {
+      groupManager.addMemberToGroup(newCommitment);
     }
 
-    // Add member to Semaphore group (incremental operation)
-    if (idCommitment) {
-      await addMemberToGroup(idCommitment);
-    }
+    return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey: newCommitment, summary, reRegistered: true });
 
-    return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey, summary });
+    // Unreachable: returns occur in each flow above
   } catch (e: unknown) {
     // eslint-disable-next-line no-console
     console.error("/api/register/dkim error", e);
