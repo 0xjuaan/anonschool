@@ -74,7 +74,7 @@ const NSForumPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 700, margin: "40px auto", padding: 20 }}>
-      <h1>Network School Forum</h1>
+      <h1>AnonSchool</h1>
       <p>Post anonymously if you've joined via your acceptance email.</p>
       {!ready ? (
         <p>Loading...</p>

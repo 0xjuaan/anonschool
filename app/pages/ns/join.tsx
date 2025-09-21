@@ -19,6 +19,7 @@ const JoinNSPage: React.FC = () => {
     try {
       setLoading(true);
       setStatus("Generating identity and verifying email via DKIM...");
+      
       const id = ensureIdentity();
       const commit = getIdCommitmentString(id);
 
@@ -51,7 +52,7 @@ const JoinNSPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 600, margin: "40px auto", padding: 20 }}>
-      <h1>Join Network School Forum</h1>
+      <h1>AnonSchool</h1>
       <p>Upload your acceptance email (.eml). We verify DKIM (d=ns.com) and subject.</p>
       <form onSubmit={onSubmit}>
         <input type="file" name="eml" accept="message/rfc822,.eml" />
