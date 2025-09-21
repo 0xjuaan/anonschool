@@ -1,68 +1,81 @@
-import { createClient } from "@supabase/supabase-js";
-import { Group } from "@semaphore-protocol/group";
+import SemaphoreGroupManager, { NS_DOMAIN, SEMAPHORE_SCOPE, SEMAPHORE_DEFAULT_DEPTH } from "./semaphore-group-manager";
 
-const supabaseUrl = process.env.SUPABASE_URL as string;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+const groupManager = SemaphoreGroupManager.getInstance();
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing Supabase environment variables");
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export const NS_DOMAIN = (process.env.NS_DOMAIN || "ns.com").toLowerCase();
-export const SEMAPHORE_SCOPE = process.env.SEMAPHORE_SCOPE || "ns-forum-v1";
-export const SEMAPHORE_DEFAULT_DEPTH = parseInt(process.env.SEMAPHORE_TREE_DEPTH || "20", 10);
-
+/**
+ * @deprecated Use getGroupRoot() for better performance
+ * Fetch all identity commitments from database (inefficient - use sparingly)
+ */
 export async function fetchIdCommitments(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("memberships")
-    .select("proof_args")
-    .eq("provider", "dkim")
-    .eq("group_id", NS_DOMAIN);
-
-  if (error) throw error;
-
-  const commitments: string[] = [];
-  for (const row of data || []) {
-    // Parse the JSON string from proof_args
-    const args = typeof row.proof_args === 'string' 
-      ? JSON.parse(row.proof_args) 
-      : row.proof_args;
-
-    const c = args?.idCommitment;
-    if (typeof c === "string" && c.length > 0 && c !== "0") {
-      commitments.push(c);
-    }
-  }
-  return commitments;
+  // This function is kept for backward compatibility
+  // New code should use groupManager.getMembers() instead
+  await groupManager.initialize();
+  return groupManager.getMembers();
 }
 
+/**
+ * Build group state using cached group manager (efficient)
+ * This now uses incremental operations instead of rebuilding the entire tree
+ */
 export async function buildGroup() {
-  const members = await fetchIdCommitments();
-  // Deterministic ordering for stable root
-  members.sort();
-  const group = new Group(members as unknown as bigint[]);
+  await groupManager.initialize();
+  
   return {
-    root: group.root.toString(),
-    depth: Math.max(group.depth, SEMAPHORE_DEFAULT_DEPTH),
-    size: group.size,
-    members,
+    root: groupManager.getRoot(),
+    depth: Math.max(groupManager.getDepth(), SEMAPHORE_DEFAULT_DEPTH),
+    size: groupManager.getSize(),
+    members: groupManager.getMembers(),
   };
 }
 
+/**
+ * Get current group root (O(1) operation)
+ * This is the most efficient way to get the group root
+ */
+export async function getGroupRoot(): Promise<string> {
+  await groupManager.initialize();
+  return groupManager.getRoot();
+}
+
+/**
+ * Add member to group (incremental operation)
+ * Call this when a new member registers
+ */
+export async function addMemberToGroup(commitment: string): Promise<void> {
+  await groupManager.initialize();
+  groupManager.addMemberToGroup(commitment);
+}
+
+/**
+ * Remove member from group (incremental operation)
+ * Call this when a member needs to be removed
+ */
+export async function removeMemberFromGroup(commitment: string): Promise<void> {
+  await groupManager.initialize();
+  groupManager.removeMemberByCommitment(commitment);
+}
+
+/**
+ * Generate Merkle proof for a member
+ */
+export async function generateMerkleProof(commitment: string) {
+  await groupManager.initialize();
+  return groupManager.generateMerkleProof(commitment);
+}
+
+/**
+ * @deprecated Use generateMerkleProof() instead
+ * Legacy function for backward compatibility
+ */
 export async function merkleProofForMember(idCommitment: string) {
-  const members = await fetchIdCommitments();
-  members.sort();
-  const group = new Group(members as unknown as bigint[]);
-  const index = group.indexOf(idCommitment);
-  if (index < 0) {
-    throw new Error("member_not_found");
-  }
-  const merkle = group.generateMerkleProof(index);
+  await groupManager.initialize();
+  const merkle = groupManager.generateMerkleProof(idCommitment);
   return {
     root: merkle.root.toString(),
     index: merkle.index,
     siblings: merkle.siblings.map((s) => s.toString()),
   };
 }
+
+// Re-export constants for backward compatibility
+export { NS_DOMAIN, SEMAPHORE_SCOPE, SEMAPHORE_DEFAULT_DEPTH };

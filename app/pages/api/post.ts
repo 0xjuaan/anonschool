@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { verifyProof, SemaphoreProof } from "@semaphore-protocol/proof";
 import crypto from "crypto";
-import { buildGroup, NS_DOMAIN, SEMAPHORE_SCOPE } from "../../lib/semaphore-group";
+import { getGroupRoot, NS_DOMAIN } from "../../lib/semaphore-group";
 
 const supabaseUrl = process.env.SUPABASE_URL as string;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
@@ -25,12 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ ok: false, error: "missing_text_or_proof" });
     }
 
-    // Build current group root from DKIM-registered members
-    const { root } = await buildGroup();
-
-    if (proof.scope !== SEMAPHORE_SCOPE) {
-      return res.status(400).json({ ok: false, error: "invalid_scope" });
-    }
+    // Get current group root efficiently (O(1) operation)
+    const root = await getGroupRoot();
 
     if (proof.merkleTreeRoot !== root) {
       return res.status(400).json({ ok: false, error: "stale_or_invalid_root", currentRoot: root });
@@ -81,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(201).json({ ok: true, id });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // eslint-disable-next-line no-console
     console.error("/api/post error", e);
     return res.status(500).json({ ok: false, error: "internal_error" });

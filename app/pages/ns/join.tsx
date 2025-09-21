@@ -25,8 +25,12 @@ const JoinNSPage: React.FC = () => {
       const text = await file.text();
       const result = await registerWithEml(text, commit);
       if (result?.ok) {
-        setStatus("Success! Redirecting to the forum...");
-        // Redirect to the /ns page after successful registration
+        if (result.alreadyRegistered) {
+          setStatus("You are already logged in with this email! Redirecting to the forum...");
+        } else {
+          setStatus("Success! Redirecting to the forum...");
+        }
+        // Redirect to the /ns page after successful registration or if already registered
         setTimeout(() => {
           router.push("/ns");
         }, 1500);

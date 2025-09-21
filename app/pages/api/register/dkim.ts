@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { verifyDkimAndSubject, sha256Hex } from "../../../lib/dkim";
+import { addMemberToGroup } from "../../../lib/semaphore-group";
 
 export const config = {
   api: {
@@ -47,9 +48,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { messageId, subject, dkim, summary } = verification;
 
+    // Use DKIM signature as unique discriminator for this email
+    // This prevents the same email from being registered multiple times
+    const emailSignature = dkim?.signature || sha256Hex(`${messageId}|${NS_DOMAIN}`);
     const pubkey: string = typeof idCommitment === "string" && idCommitment.length > 0
       ? idCommitment
-      : `dkim_${sha256Hex(`${messageId}|${NS_DOMAIN}`).slice(0, 32)}`;
+      : `dkim_${emailSignature.slice(0, 32)}`;
+
+    // Check if this email signature is already registered
+    const { data: existingMembership } = await supabase
+      .from("memberships")
+      .select("pubkey, proof_args")
+      .eq("provider", "dkim")
+      .eq("group_id", NS_DOMAIN)
+      .eq("pubkey", pubkey)
+      .single();
+
+    // Also check by email signature to prevent duplicate emails with different idCommitments
+    const { data: existingBySignature } = await supabase
+      .from("memberships")
+      .select("pubkey, proof_args")
+      .eq("provider", "dkim")
+      .eq("group_id", NS_DOMAIN)
+      .eq("proof_args->>signature", emailSignature)
+      .single();
+
+    if (existingMembership || existingBySignature) {
+      const existingPubkey = existingMembership?.pubkey || existingBySignature?.pubkey;
+      const isDifferentCommitment = existingBySignature && existingBySignature.pubkey !== pubkey;
+      
+      return res.status(200).json({ 
+        ok: true, 
+        groupId: NS_DOMAIN, 
+        pubkey: existingPubkey, 
+        alreadyRegistered: true,
+        message: isDifferentCommitment 
+          ? "This email is already registered with a different identity. Each email can only be registered once."
+          : "This email has already been registered! You can only register once per email."
+      });
+    }
 
     const providerName = "dkim";
 
@@ -60,6 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subject,
       idCommitment: idCommitment || null,
       summary,
+      signature: emailSignature, // Store signature for deduplication
     });
 
     const { error } = await supabase.from("memberships").insert([
@@ -74,15 +112,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     if (error) {
-      // If duplicate pubkey, treat as ok (idempotent)
-      if (error.code === "23505") {
-        return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey, existed: true });
-      }
       throw new Error(`Supabase insert failed: ${error.message}`);
     }
 
+    // Add member to Semaphore group (incremental operation)
+    if (idCommitment) {
+      await addMemberToGroup(idCommitment);
+    }
+
     return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey, summary });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // eslint-disable-next-line no-console
     console.error("/api/register/dkim error", e);
     return res.status(500).json({ ok: false, error: "internal_error" });
