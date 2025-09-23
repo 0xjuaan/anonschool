@@ -1,14 +1,21 @@
 import { Group } from "@semaphore-protocol/group";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL as string;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+let supabase: ReturnType<typeof createClient> | null = null;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing Supabase environment variables");
+function getSupabaseClient() {
+  if (!supabase) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Missing Supabase environment variables");
+    }
+
+    supabase = createClient(supabaseUrl, supabaseKey);
+  }
+  return supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const NS_DOMAIN = (process.env.NS_DOMAIN || "ns.com").toLowerCase();
 export const SEMAPHORE_SCOPE = process.env.SEMAPHORE_SCOPE || "ns-forum-v1";
@@ -59,7 +66,8 @@ class SemaphoreGroupManager {
    * Load identity commitments from database
    */
   private async loadCommitmentsFromDatabase(): Promise<string[]> {
-    const { data, error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
       .from("memberships")
       .select("proof_args")
       .eq("provider", "dkim")

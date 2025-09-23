@@ -1,5 +1,8 @@
 import { Message, SignedMessage, SignedMessageWithProof } from "./types";
 import { getEphemeralPubkey } from "./ephemeral-key";
+import { loadIdentity, getIdCommitmentString } from "./ns-client";
+import { generateProof } from "@semaphore-protocol/proof";
+import { Identity } from "@semaphore-protocol/identity";
 
 export async function fetchMessages({
   limit,
@@ -73,7 +76,6 @@ export async function fetchMessage(
 
   const message = await response.json();
   try {
-    message.signature = BigInt(message.signature);
     message.ephemeralPubkey = BigInt(message.ephemeralPubkey);
     message.ephemeralPubkeyExpiry = new Date(message.ephemeralPubkeyExpiry);
     message.timestamp = new Date(message.timestamp);
@@ -140,19 +142,144 @@ export async function createMessage(signedMessage: SignedMessage) {
   }
 }
 
-export async function toggleLike(messageId: string, like: boolean) {
-  try {
-    const pubkey = getEphemeralPubkey();
+// Generate nullifier for a given message
+// This should match what generateProof produces
+async function generateNullifier(identity: Identity, messageId: string): Promise<string> {
+  const scope = `ns-like-${messageId}`;
+  
+  // For now, we need to generate a proof to get the actual nullifier
+  // This is not ideal but ensures we get the exact same nullifier
+  const idCommitment = getIdCommitmentString(identity);
+  
+  // Get Merkle proof
+  const merkleResponse = await fetch('/api/merkle-proof', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idCommitment }),
+  });
 
+  if (!merkleResponse.ok) {
+    throw new Error('Failed to get Merkle proof');
+  }
+
+  const merkle = await merkleResponse.json();
+  
+  // Convert Merkle proof to format required by generateProof
+  const merkleProof = {
+    root: BigInt(merkle.root),
+    index: merkle.index,
+    siblings: merkle.siblings.map((s: string) => BigInt(s)),
+    leaf: BigInt(idCommitment),
+  } as { root: bigint; index: number; siblings: bigint[]; leaf: bigint };
+  
+  // Generate proof to get the actual nullifier
+  const proof = await generateProof(identity, merkleProof, messageId, scope);
+  
+  return proof.nullifier;
+}
+
+// Check if user has liked a message
+export async function checkLikeStatus(messageId: string): Promise<boolean> {
+  try {
+    const identity = loadIdentity();
+    if (!identity) {
+      return false;
+    }
+
+    const nullifier = await generateNullifier(identity, messageId);
+    
+    const response = await fetch('/api/likes/check', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ messageId, nullifier }),
+    });
+
+    if (!response.ok) {
+      console.error('Failed to check like status');
+      return false;
+    }
+
+    const { liked } = await response.json();
+    return liked;
+  } catch (error) {
+    console.error('Error checking like status:', error);
+    return false;
+  }
+}
+
+// Get current like count for a message
+export async function getLikeCount(messageId: string): Promise<number> {
+  try {
+    const response = await fetch(`/api/likes/count?messageId=${messageId}`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      console.error('Failed to get like count');
+      return 0;
+    }
+
+    const { count } = await response.json();
+    return count;
+  } catch (error) {
+    console.error('Error getting like count:', error);
+    return 0;
+  }
+}
+
+export async function toggleLike(messageId: string) {
+  try {
+    
+    // Load user's Semaphore identity
+    const identity = loadIdentity();
+    if (!identity) {
+      throw new Error("No Semaphore identity found. Please register first.");
+    }
+
+    // Get identity commitment
+    const idCommitment = getIdCommitmentString(identity);
+    
+    // Get Merkle proof that user is in the group
+    const merkleResponse = await fetch('/api/merkle-proof', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ idCommitment }),
+    });
+
+    if (!merkleResponse.ok) {
+      const errorData = await merkleResponse.json();
+      throw new Error(errorData.error || 'Failed to get Merkle proof');
+    }
+    const merkle = await merkleResponse.json();
+    
+    // Create scope for this like action
+    const scope = `ns-like-${messageId}`;
+    
+    // Convert Merkle proof to format required by generateProof
+    const merkleProof = {
+      root: BigInt(merkle.root),
+      index: merkle.index,
+      siblings: merkle.siblings.map((s: string) => BigInt(s)),
+      leaf: BigInt(idCommitment),
+    } as { root: bigint; index: number; siblings: bigint[]; leaf: bigint };
+    
+    const proof = await generateProof(identity, merkleProof, messageId, scope);
+    console.log("🔍 Generated proof scope:", proof.scope);
+    console.log("🔍 Expected scope:", scope);
+
+    // Send proof to server
     const response = await fetch("/api/likes", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${pubkey}`,
       },
       body: JSON.stringify({
         messageId,
-        like,
+        proof,
       }),
     });
 
@@ -165,7 +292,6 @@ export async function toggleLike(messageId: string, like: boolean) {
     const data = await response.json();
     return data.liked;
   } catch (error) {
-    console.error("Error toggling like:", error);
     throw error;
   }
 }

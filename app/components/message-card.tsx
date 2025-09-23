@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import TimeAgo from "javascript-time-ago";
 import Link from "next/link";
@@ -6,7 +6,7 @@ import IonIcon from "@reacticons/ionicons";
 import type { SignedMessageWithProof } from "../lib/types";
 import { generateNameFromPubkey } from "../lib/utils";
 import { setMessageLiked, isMessageLiked } from "../lib/store";
-import { fetchMessage, toggleLike } from "../lib/api";
+import { fetchMessage, toggleLike, checkLikeStatus, getLikeCount } from "../lib/api";
 import { hasEphemeralKey } from "../lib/ephemeral-key";
 import { verifyMessage } from "../lib/core";
 import { Providers } from "../lib/providers";
@@ -27,24 +27,60 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
 
   // States
   const [likeCount, setLikeCount] = useState(message.likes || 0);
-  const [isLiked, setIsLiked] = useState(isMessageLiked(message.id));
+  const [isLiked, setIsLiked] = useState(false);
   const [verificationStatus, setVerificationStatus] =
     useState<VerificationStatus>("idle");
+  const [likeStatusLoading, setLikeStatusLoading] = useState(true);
 
   const isGroupPage = window.location.pathname === `/${provider.getSlug()}/${message.anonGroupId}`;
   const isMessagePage = window.location.pathname === `/messages/${message.id}`;
+
+  // Check like status and count on mount
+  useEffect(() => {
+    async function loadLikeData() {
+      try {
+        setLikeStatusLoading(true);
+        
+        // Load both like status and count in parallel
+        const [liked, count] = await Promise.all([
+          checkLikeStatus(message.id),
+          getLikeCount(message.id)
+        ]);
+        
+        setIsLiked(liked);
+        setLikeCount(count);
+      } catch (error) {
+        console.error('Failed to load like data:', error);
+        // Fallback to local storage if server check fails
+        setIsLiked(isMessageLiked(message.id));
+        // Keep the original like count from message.likes as fallback
+      } finally {
+        setLikeStatusLoading(false);
+      }
+    }
+
+    loadLikeData();
+  }, [message.id]);
 
   // Handlers
   async function onLikeClick() {
     try {
       const newIsLiked = !isLiked;
 
+      // Optimistic update
       setIsLiked(newIsLiked);
       setLikeCount((prev: number) => (newIsLiked ? prev + 1 : prev - 1));
       setMessageLiked(message.id, newIsLiked);
 
-      await toggleLike(message.id, newIsLiked);
+      // Toggle like on server
+      await toggleLike(message.id);
+      
+      // Refresh like count from server to ensure accuracy
+      const actualCount = await getLikeCount(message.id);
+      setLikeCount(actualCount);
     } catch (error) {
+      console.error('Like toggle failed:', error);
+      // Revert optimistic update
       setIsLiked(isLiked);
       setLikeCount(likeCount);
       setMessageLiked(message.id, isLiked);
@@ -187,10 +223,14 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
         <div className="like-button-container">
           <button
             onClick={onLikeClick}
-            disabled={!hasEphemeralKey()}
-            className={`like-button ${isLiked ? "liked" : ""}`}
+            disabled={!hasEphemeralKey() || likeStatusLoading}
+            className={`like-button ${isLiked ? "liked" : ""} ${likeStatusLoading ? "loading" : ""}`}
           >
-            <IonIcon name={isLiked ? "heart" : "heart-outline"} />
+            {likeStatusLoading ? (
+              <span className="like-loading-icon spinner-icon small"></span>
+            ) : (
+              <IonIcon name={isLiked ? "heart" : "heart-outline"} />
+            )}
             <span className="like-count">{likeCount}</span>
           </button>
         </div>

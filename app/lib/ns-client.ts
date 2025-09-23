@@ -2,7 +2,35 @@ import { Identity } from "@semaphore-protocol/identity";
 import { generateProof } from "@semaphore-protocol/proof";
 
 const ID_STORAGE_KEY = "ns.identity.v1";
-const SCOPE = process.env.NEXT_PUBLIC_SEMAPHORE_SCOPE || "ns-forum-v1";
+
+// Generate time-based scope for current minute
+export function getCurrentMinuteScope(): string {
+  const now = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
+  const minuteTimestamp = Math.floor(now / 60); // Floor divide by 60 to get current minute
+  return `ns-post-${minuteTimestamp}`;
+}
+
+// Validate that a scope is valid for the current minute (with 2 minute tolerance)
+export function isValidScope(scope: string | bigint): boolean {
+  const currentMinute = Math.floor(Date.now() / 1000 / 60);
+  
+  // Handle both string and BigInt scopes
+  let scopeStr: string;
+  if (typeof scope === 'bigint') {
+    scopeStr = scope.toString();
+  } else {
+    scopeStr = scope;
+  }
+  
+  // Extract minute from scope for string format
+  const scopeMatch = scopeStr.match(/^ns-post-(\d+)$/);
+  if (!scopeMatch) return false;
+  
+  const scopeMinute = parseInt(scopeMatch[1], 10);
+  
+  // Allow current minute or up to 2 minutes ago (2 minute tolerance for clock skew)
+  return scopeMinute >= currentMinute - 1 && scopeMinute <= currentMinute;
+}
 
 export type StoredIdentity = {
   privateKey: string;
@@ -42,7 +70,7 @@ export function getIdCommitmentString(id: Identity): string {
 }
 
 export async function registerWithEml(emlText: string, idCommitment?: string) {
-  const body: any = { emlBase64: btoa(emlText) };
+  const body: { emlBase64: string; idCommitment?: string } = { emlBase64: btoa(emlText) };
   if (idCommitment) body.idCommitment = idCommitment;
   const res = await fetch("/api/register/dkim", {
     method: "POST",
@@ -71,7 +99,7 @@ export async function fetchMerkleProof(idCommitment: string) {
 
 export async function postAnonymousMessage(identity: Identity, text: string) {
   const idc = getIdCommitmentString(identity);
-  const { root } = await fetchGroupRoot();
+  await fetchGroupRoot(); // Verify group root is accessible
   const merkle = await fetchMerkleProof(idc);
 
   // Convert siblings to BigInt array as required by generateProof
@@ -79,9 +107,19 @@ export async function postAnonymousMessage(identity: Identity, text: string) {
     root: BigInt(merkle.root),
     index: merkle.index,
     siblings: merkle.siblings.map((s) => BigInt(s)),
-  } as any;
+    leaf: BigInt(idc),
+  } as { root: bigint; index: number; siblings: bigint[]; leaf: bigint };
 
-  const proof = await generateProof(identity, merkleProof, text, SCOPE);
+  const scope = getCurrentMinuteScope();
+  console.log("🕐 Client generating proof with scope:", {
+    scope,
+    timestamp: new Date().toISOString(),
+    currentMinute: Math.floor(Date.now() / 1000 / 60)
+  });
+  const proof = await generateProof(identity, merkleProof, text, scope);
+  
+  // Add the original scope to the proof object for server validation
+  (proof as any).originalScope = scope;
 
   const res = await fetch("/api/post", {
     method: "POST",

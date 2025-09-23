@@ -145,9 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       summary,
       signature: emailSignature,
     };
-
-    console.log(`🔍!!! Updating membership for commitment: ${newCommitment}`);
-
+    
     const { error: updateError } = await supabase
       .from("memberships")
       .update({

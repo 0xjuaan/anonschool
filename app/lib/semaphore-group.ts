@@ -2,31 +2,6 @@ import SemaphoreGroupManager, { NS_DOMAIN, SEMAPHORE_SCOPE, SEMAPHORE_DEFAULT_DE
 
 const groupManager = SemaphoreGroupManager.getInstance();
 
-/**
- * @deprecated Use getGroupRoot() for better performance
- * Fetch all identity commitments from database (inefficient - use sparingly)
- */
-export async function fetchIdCommitments(): Promise<string[]> {
-  // This function is kept for backward compatibility
-  // New code should use groupManager.getMembers() instead
-  await groupManager.initialize();
-  return groupManager.getMembers();
-}
-
-/**
- * Build group state using cached group manager (efficient)
- * This now uses incremental operations instead of rebuilding the entire tree
- */
-export async function buildGroup() {
-  await groupManager.initialize();
-  
-  return {
-    root: groupManager.getRoot(),
-    depth: Math.max(groupManager.getDepth(), SEMAPHORE_DEFAULT_DEPTH),
-    size: groupManager.getSize(),
-    members: groupManager.getMembers(),
-  };
-}
 
 /**
  * Get current group root (O(1) operation)

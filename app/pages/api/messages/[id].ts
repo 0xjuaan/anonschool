@@ -37,7 +37,7 @@ async function getSingleMessage(req: NextApiRequest, res: NextApiResponse) {
       .from("messages")
       .select(
         /* eslint-disable-next-line max-len */
-        "id, group_id, group_provider, text, timestamp, signature, pubkey, internal, likes, memberships(proof, pubkey_expiry, proof_args)"
+        "id, group_id, group_provider, text, timestamp, internal, likes, memberships(proof, pubkey_expiry, proof_args)"
       )
       .eq("id", id)
       .single();
@@ -83,7 +83,6 @@ async function getSingleMessage(req: NextApiRequest, res: NextApiResponse) {
       anonGroupProvider: data.group_provider,
       text: data.text,
       timestamp: data.timestamp,
-      signature: data.signature,
       ephemeralPubkey: data.pubkey,
       // @ts-expect-error memberships is not array
       ephemeralPubkeyExpiry: data.memberships.pubkey_expiry,
