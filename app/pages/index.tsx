@@ -6,10 +6,14 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>StealthNote - Anonymous messages from your coworkers</title>
+        <title>AnonSchool - Anonymous Posts</title>
       </Head>
 
       <div className="home-page">
+        <div className="article">
+          <h1 className="article-title">AnonSchool</h1>
+          <p>Post messages anonymously, only open to NS members. Verified with ZK proofs.</p>
+        </div>
         <MessageList showMessageForm />
       </div>
     </>

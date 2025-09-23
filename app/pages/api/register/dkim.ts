@@ -134,6 +134,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("MADE IT TO RE-REGISTRATION");
 
+    // NOTE: currently re-registered accounts will be able to like posts that were already liked by the old identity
+    // -> this allows for an infinite-like hack
+    // TODO: find a fix for this
+
     // Re-registration with a new commitment: update DB and group
     const providerName = "dkim";
     const proof = dkim ? JSON.stringify(dkim) : JSON.stringify({});
@@ -145,7 +149,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       summary,
       signature: emailSignature,
     };
-    
+
     const { error: updateError } = await supabase
       .from("memberships")
       .update({

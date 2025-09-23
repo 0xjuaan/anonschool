@@ -13,4 +13,5 @@ export const Providers: Record<string, AnonGroupProvider> = {
 
 export const ProviderSlugKeyMap: Record<string, AnonGroupProvider> = {
   domain: GoogleOAuthProvider,
+  ns: NSDkimProvider,
 };

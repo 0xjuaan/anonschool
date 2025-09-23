@@ -93,7 +93,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error(`Failed to insert message: ${insertMessageError.message}`);
     }
 
-    return res.status(201).json({ ok: true, id });
+    return res.status(201).json({
+      ok: true,
+      id,
+      text,
+      timestamp: now.toISOString(),
+      group_id: NS_DOMAIN,
+      group_provider: "ns-dkim",
+      internal: false,
+      likes: 0
+    });
   } catch (e: unknown) {
     // eslint-disable-next-line no-console
     console.error("/api/post error", e);

@@ -146,7 +146,7 @@ export async function fetchMessages(
   const messages: Partial<SignedMessage>[] = data.map((message) => ({
     id: message.id,
     anonGroupId: message.group_id,
-    anonGroupProvider: message.group_provider,
+    anonGroupProvider: "ns-dkim", // Always use ns-dkim provider
     text: message.text,
     timestamp: message.timestamp,
     internal: message.internal,

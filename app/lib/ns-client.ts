@@ -130,5 +130,12 @@ export async function postAnonymousMessage(identity: Identity, text: string) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`Post failed: ${err.error || res.statusText}`);
   }
-  return res.json();
+  const data = await res.json();
+  
+  // Add provider info to the returned message
+  return {
+    ...data,
+    anonGroupProvider: "ns-dkim",
+    timestamp: new Date(data.timestamp)
+  };
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
-import { ensureIdentity, getIdCommitmentString, registerWithEml } from "../../lib/ns-client";
+import { ensureIdentity, getIdCommitmentString, registerWithEml } from "../lib/ns-client";
 
 const JoinNSPage: React.FC = () => {
   const [status, setStatus] = useState<string>("");
@@ -35,9 +35,9 @@ const JoinNSPage: React.FC = () => {
         } else {
           setStatus("Success! Redirecting to the forum...");
         }
-        // Redirect to the /ns page after successful registration or if already registered
+        // Redirect to the root page after successful registration or if already registered
         setTimeout(() => {
-          router.push("/ns");
+          router.push("/");
         }, 1500);
       } else {
         setStatus("Registration failed. Please check your email file.");

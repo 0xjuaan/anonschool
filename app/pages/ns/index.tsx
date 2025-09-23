@@ -33,8 +33,6 @@ const NSForumPage: React.FC = () => {
         const id = ensureIdentity();
         const c = getIdCommitmentString(id);
 
-
-
         // to check membership, we use semaphore to find out
         // if the proof is valid, then the user is a member
         const res = await fetch(`/api/group/proof?idCommitment=${encodeURIComponent(c)}`);
@@ -80,7 +78,7 @@ const NSForumPage: React.FC = () => {
         <p>Loading...</p>
       ) : joinNeeded ? (
         <p>
-          You need to join first. Go to <Link href="/ns/join">Join Page</Link>.
+          To post, you need to join first. Go to the <Link href="/join">Join Page</Link>.
         </p>
       ) : (
         <div style={{ margin: "16px 0" }}>
