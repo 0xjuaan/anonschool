@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ 
         ok: false, 
         error: "nullifier_already_used", 
-        message: "This nullifier has already been used for a post"
+        message: "You can only post once per minute"
       });
     }
 

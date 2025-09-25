@@ -268,8 +268,6 @@ export async function toggleLike(messageId: string) {
     } as { root: bigint; index: number; siblings: bigint[]; leaf: bigint };
     
     const proof = await generateProof(identity, merkleProof, messageId, scope);
-    console.log("🔍 Generated proof scope:", proof.scope);
-    console.log("🔍 Expected scope:", scope);
 
     // Send proof to server
     const response = await fetch("/api/likes", {

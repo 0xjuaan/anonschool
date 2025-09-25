@@ -21,15 +21,12 @@ export default async function handler(
 
   try {
     const { messageId } = req.query;
-    console.log("🔢 Getting like count for message:", messageId);
 
     if (!messageId || typeof messageId !== "string") {
-      console.log("❌ Missing or invalid messageId");
       return res.status(400).json({ error: "Missing or invalid messageId" });
     }
 
     // Count likes for this message
-    console.log("🔍 Counting likes in database...");
     const { count, error: countError } = await supabase
       .from("likes")
       .select("*", { count: "exact", head: true })
@@ -41,7 +38,6 @@ export default async function handler(
     }
 
     const likeCount = count || 0;
-    console.log("✅ Like count result:", { messageId, likeCount });
     
     return res.status(200).json({ count: likeCount });
   } catch (error) {

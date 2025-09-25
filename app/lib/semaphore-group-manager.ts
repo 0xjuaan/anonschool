@@ -48,8 +48,6 @@ class SemaphoreGroupManager {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log("Initializing Semaphore group from database...");
-    
     // Load all commitments from database
     const commitments = await this.loadCommitmentsFromDatabase();
     
@@ -59,7 +57,6 @@ class SemaphoreGroupManager {
     });
 
     this.initialized = true;
-    console.log(`Group initialized with ${this.group.size} members`);
   }
 
   /**
@@ -70,7 +67,7 @@ class SemaphoreGroupManager {
     const { data, error } = await supabaseClient
       .from("memberships")
       .select("proof_args")
-      .eq("provider", "dkim")
+      .eq("provider", "ns-dkim")
       .eq("group_id", NS_DOMAIN);
 
     if (error) throw error;

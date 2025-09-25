@@ -42,7 +42,7 @@ export function loadIdentity(): Identity | null {
     const raw = localStorage.getItem(ID_STORAGE_KEY);
     if (!raw) return null;
     const parsed: StoredIdentity = JSON.parse(raw);
-    const id = new Identity(parsed.privateKey);
+    const id = Identity.import(parsed.privateKey);
     return id;
   } catch {
     return null;
@@ -59,7 +59,7 @@ export function ensureIdentity(): Identity {
 
 export function persistIdentity(id: Identity) {
   const data: StoredIdentity = {
-    privateKey: JSON.stringify(Array.from(id.privateKey as Uint8Array)),
+    privateKey: id.export(),
     secretScalar: id.secretScalar.toString(),
   };
   localStorage.setItem(ID_STORAGE_KEY, JSON.stringify(data));
@@ -67,21 +67,6 @@ export function persistIdentity(id: Identity) {
 
 export function getIdCommitmentString(id: Identity): string {
   return id.commitment.toString();
-}
-
-export async function registerWithEml(emlText: string, idCommitment?: string) {
-  const body: { emlBase64: string; idCommitment?: string } = { emlBase64: btoa(emlText) };
-  if (idCommitment) body.idCommitment = idCommitment;
-  const res = await fetch("/api/register/dkim", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(`Registration failed: ${err.error || res.statusText}`);
-  }
-  return res.json();
 }
 
 export async function fetchGroupRoot() {
@@ -111,11 +96,7 @@ export async function postAnonymousMessage(identity: Identity, text: string) {
   } as { root: bigint; index: number; siblings: bigint[]; leaf: bigint };
 
   const scope = getCurrentMinuteScope();
-  console.log("🕐 Client generating proof with scope:", {
-    scope,
-    timestamp: new Date().toISOString(),
-    currentMinute: Math.floor(Date.now() / 1000 / 60)
-  });
+
   const proof = await generateProof(identity, merkleProof, text, scope);
   
   // Add the original scope to the proof object for server validation
@@ -128,7 +109,7 @@ export async function postAnonymousMessage(identity: Identity, text: string) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Post failed: ${err.error || res.statusText}`);
+    throw new Error(`Post failed: ${err.message || res.statusText}`);
   }
   const data = await res.json();
   

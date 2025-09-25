@@ -82,7 +82,6 @@ export async function verifyDkimAndSubject(
   if (passed.status?.result === "neutral" && passed.status?.comment === "expired") {
     // Ensure the signature is from the expected domain
     if (signingDomain !== expectedDomain && !signingDomain.endsWith(`.${expectedDomain}`)) {
-      console.log("Expired DKIM signature from wrong domain:", signingDomain);
       return { 
         ok: false, 
         reason: "dkim_fail", 
@@ -92,7 +91,6 @@ export async function verifyDkimAndSubject(
     
     // Ensure the signature has the required structure
     if (!passed.signature || !passed.signingDomain || !passed.selector) {
-      console.log("Expired DKIM signature missing required fields");
       return { ok: false, reason: "dkim_fail", details: { results, reason: "expired_signature_incomplete" } } as const;
     }
   }

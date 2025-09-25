@@ -21,25 +21,20 @@ export default async function handler(
 
   try {
     const { messageId, nullifier } = req.body;
-    console.log("🔍 Checking like status:", { messageId, nullifier: nullifier?.substring(0, 10) + "..." });
 
     if (!messageId || !nullifier) {
-      console.log("❌ Missing required parameters:", { messageId: !!messageId, nullifier: !!nullifier });
       return res.status(400).json({ error: "Missing messageId or nullifier" });
     }
 
     // Hash the nullifier to match how it's stored in the database
-    console.log("🔐 Hashing nullifier...");
     const hashedNullifier = await crypto.subtle.digest('SHA-256', 
       new TextEncoder().encode(nullifier)
     );
     const hashedNullifierHex = Array.from(new Uint8Array(hashedNullifier))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
-    console.log("🔑 Hashed nullifier:", hashedNullifierHex.substring(0, 16) + "...");
 
     // Check if this nullifier exists for this message
-    console.log("🔍 Querying database for existing like...");
     const { data: existingLike, error: queryError } = await supabase
       .from("likes")
       .select()

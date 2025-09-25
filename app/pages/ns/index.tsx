@@ -49,7 +49,6 @@ const NSForumPage: React.FC = () => {
     }
     checkJoinStatus();
     setReady(true);
-    console.log("joinNeeded", joinNeeded);
   }, []);
 
   async function onPost() {

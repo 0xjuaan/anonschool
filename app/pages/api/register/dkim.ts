@@ -1,21 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { verifyDkimAndSubject, sha256Hex } from "../../../lib/dkim";
 import { addMemberToGroup } from "../../../lib/semaphore-group";
 import SemaphoreGroupManager from "../../../lib/semaphore-group-manager";
-
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "2mb",
-    },
-  },
-};
+import { initZkEmailSdk, Proof } from "@zk-email/sdk";
 
 const supabaseUrl = process.env.SUPABASE_URL as string;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 const NS_DOMAIN = (process.env.NS_DOMAIN || "ns.com").toLowerCase();
-const NS_ACCEPT_SUBJECT = process.env.NS_ACCEPT_SUBJECT || "Welcome to Network School!";
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error("Missing Supabase environment variables");
@@ -30,154 +21,82 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { eml, emlBase64, idCommitment } = req.body || {};
-
-    if (!eml && !emlBase64) {
-      return res.status(400).json({ ok: false, error: "Missing 'eml' or 'emlBase64' in body" });
+    const { proof, idCommitment } = req.body;
+    if (!proof || !idCommitment) {
+      return res.status(400).json({ ok: false, error: "Missing proof or idCommitment" });
     }
 
-    const raw = typeof emlBase64 === "string" ? Buffer.from(emlBase64, "base64").toString("utf8") : String(eml);
+    // Initialize the SDK with the official API
+    const sdk = initZkEmailSdk();
 
-    // TODO: use zk-email for verification with privacy
-    const verification = await verifyDkimAndSubject(raw, {
-      expectedDomain: NS_DOMAIN,
-      expectedSubject: NS_ACCEPT_SUBJECT,
-    });
+    // Get the blueprint
+    const blueprint = await sdk.getBlueprint("hackertron/NetworkSchool@v2");
 
-    if (!verification.ok) {
-      return res.status(400).json({ ok: false, error: verification.reason, details: verification.details });
+    // Parse the packed proof back into a Proof instance
+    const proofObj = await Proof.unPackProof(proof, "https://conductor.zk.email");
+
+
+    // Verify the proof
+    const verification = await blueprint.verifyProof(proofObj);
+    if (!verification) {
+      return res.status(400).json({ ok: false, error: "Invalid proof" });
     }
 
-    const { messageId, subject, dkim, summary } = verification;
 
-    // Use DKIM signature as unique discriminator for this email
-    // This prevents the same email from being registered multiple times
-    const emailSignature = dkim?.signature || sha256Hex(`${messageId}|${NS_DOMAIN}`);
 
-    // Look up by signature (single source of truth for dedup)
-    const { data: existingBySignature } = await supabase
+    // Look up by header hash (single source of truth for dedup)
+    const proofHash = proofObj.getHeaderHash();
+
+    const { data: existingByProof } = await supabase
       .from("memberships")
-      .select("pubkey, proof_args")
-      .eq("provider", "dkim")
+      .select("pubkey")
+      .eq("provider", "ns-dkim")
       .eq("group_id", NS_DOMAIN)
-      .eq("proof_args->>signature", emailSignature)
+      .eq("header_hash", proofHash)
       .single();
 
-    // Extract old commitment if present
-    const oldArgs = existingBySignature?.proof_args;
-
-
-
-    const oldCommitment: string | undefined = oldArgs?.idCommitment || undefined;
-
-    const newCommitment: string | undefined = (typeof idCommitment === 'string' && idCommitment.length > 0)
-      ? idCommitment
-      : undefined;
-
     // If no record exists: create
-    if (!existingBySignature) {
-      const providerName = "dkim";
-      const proof = dkim ? JSON.stringify(dkim) : JSON.stringify({});
+    if (!existingByProof) {
       const proofArgs = {
-        domain: NS_DOMAIN,
-        messageId,
-        subject,
-        idCommitment: newCommitment || null,
-        summary,
-        signature: emailSignature,
+        proofHash,
+        idCommitment: idCommitment || null,
       };
 
-      const insertPubkey = newCommitment || `dkim_${emailSignature.slice(0, 32)}`;
       const { error: insertError } = await supabase.from("memberships").insert([
         {
-          provider: providerName,
-          pubkey: insertPubkey,
+          provider: "ns-dkim",
+          pubkey: idCommitment,
           pubkey_expiry: null,
-          proof,
+          proof: JSON.stringify(proof),
           proof_args: proofArgs,
           group_id: NS_DOMAIN,
+          header_hash: proofHash,
         },
       ]);
       if (insertError) throw new Error(`Supabase insert failed: ${insertError.message}`);
 
-      if (newCommitment) {
-        await addMemberToGroup(newCommitment);
+      if (idCommitment) {
+        await addMemberToGroup(idCommitment);
       }
 
-      return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey: insertPubkey, summary });
+      return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey: idCommitment });
     }
 
-    // Record exists for this signature
-    const existingPubkey: string = existingBySignature.pubkey;
+    // Record exists for this proof - return alreadyRegistered response
+    const existingPubkey: string = existingByProof.pubkey;
+    return res.status(200).json({
+      ok: true,
+      groupId: NS_DOMAIN,
+      pubkey: existingPubkey,
+      alreadyRegistered: true,
+      message: "This email is already registered. Each email can only be used once for registration."
+    });
 
-    // If caller didn't provide a new commitment, return alreadyRegistered
-    if (!newCommitment) {
-      return res.status(200).json({
-        ok: true,
-        groupId: NS_DOMAIN,
-        pubkey: existingPubkey,
-        alreadyRegistered: true,
-        message: "This email is already registered."
-      });
-    }
-
-    // If the provided commitment matches the stored one, return alreadyRegistered
-    if (oldCommitment && oldCommitment === newCommitment) {
-      return res.status(200).json({
-        ok: true,
-        groupId: NS_DOMAIN,
-        pubkey: existingPubkey,
-        alreadyRegistered: true,
-        message: "Already registered with this identity."
-      });
-    }
-
-    console.log("MADE IT TO RE-REGISTRATION");
-
-    // NOTE: currently re-registered accounts will be able to like posts that were already liked by the old identity
-    // -> this allows for an infinite-like hack
-    // TODO: find a fix for this
-
-    // Re-registration with a new commitment: update DB and group
-    const providerName = "dkim";
-    const proof = dkim ? JSON.stringify(dkim) : JSON.stringify({});
-    const proofArgs = {
-      domain: NS_DOMAIN,
-      messageId,
-      subject,
-      idCommitment: newCommitment,
-      summary,
-      signature: emailSignature,
-    };
-
-    const { error: updateError } = await supabase
-      .from("memberships")
-      .update({
-        pubkey: newCommitment,
-        proof,
-        proof_args: proofArgs,
-      })
-      .eq("provider", providerName)
-      .eq("group_id", NS_DOMAIN)
-      .eq("proof_args->>signature", emailSignature);
-
-    if (updateError) throw new Error(`Supabase update failed: ${updateError.message}`);
-
-    // Update group incrementally
-    const groupManager = SemaphoreGroupManager.getInstance();
-    if (oldCommitment) {
-      groupManager.updateMemberByCommitment(oldCommitment, newCommitment);
-    } else {
-      groupManager.addMemberToGroup(newCommitment);
-    }
-
-    return res.status(200).json({ ok: true, groupId: NS_DOMAIN, pubkey: newCommitment, summary, reRegistered: true });
-
-    // Unreachable: returns occur in each flow above
   } catch (e: unknown) {
-    // eslint-disable-next-line no-console
-    console.error("/api/register/dkim error", e);
-    return res.status(500).json({ ok: false, error: "internal_error" });
+    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+    const errorDetails = e instanceof Error ? e.stack : String(e);
+    console.error("/api/register/dkim error:", errorMessage);
+    console.error("Details:", errorDetails);
+    return res.status(500).json({ ok: false, error: errorMessage });
   }
 }
-
