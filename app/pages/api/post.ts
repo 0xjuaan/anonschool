@@ -50,6 +50,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ ok: false, error: "stale_or_invalid_root", currentRoot: root });
     }
 
+    
+
     const valid = await verifyProof(proof);
     if (!valid) {
       return res.status(400).json({ ok: false, error: "invalid_proof" });
@@ -74,6 +76,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Record this root usage in group_roots table
+     const { error: rootInsertError } = await supabase
+       .from('group_roots')
+       .insert({
+         root: root.toString(),
+         depth: 20,
+         size: proof.merkleTreeDepth,
+         created_at: new Date().toISOString()
+       });
+
+    if (rootInsertError) {
+      console.error("Failed to record group root:", rootInsertError);
+    } else {
+      console.log("Root recorded successfully");
+    }
+
     const id = crypto.randomUUID().split("-").slice(0, 2).join("");
     const now = new Date();
 
@@ -84,6 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         group_provider: "ns-dkim",
         text,
         timestamp: now.toISOString(),
+        proof: proof,
         nullifier: nullifier,
         internal: false,
       },
