@@ -2138,13 +2138,6 @@ chrome-trace-event@^1.0.2:
   resolved "https://registry.npmjs.org/chrome-trace-event/-/chrome-trace-event-1.0.4.tgz"
   integrity sha512-rNjApaLzuwaOTjCiT8lSDdGN1APCiqkChLMJxJPWLunPAt5fy8xgU9/jNOchV84wfIxrA0lRQB7oCT8jrn/wrQ==
 
-circom_runtime@0.1.21:
-  version "0.1.21"
-  resolved "https://registry.npmjs.org/circom_runtime/-/circom_runtime-0.1.21.tgz"
-  integrity sha512-qTkud630B/GK8y76hnOaaS1aNuF6prfV0dTrkeRsiJKnlP1ryQbP2FWLgDOPqn6aKyaPlam+Z+DTbBhkEzh8dA==
-  dependencies:
-    ffjavascript "0.2.56"
-
 circom_runtime@0.1.28:
   version "0.1.28"
   resolved "https://registry.npmjs.org/circom_runtime/-/circom_runtime-0.1.28.tgz"
@@ -4547,16 +4540,6 @@ queue-microtask@^1.2.2:
   resolved "https://registry.npmjs.org/queue-microtask/-/queue-microtask-1.2.3.tgz"
   integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
-r1csfile@0.0.41, r1csfile@^0.0.41:
-  version "0.0.41"
-  resolved "https://registry.npmjs.org/r1csfile/-/r1csfile-0.0.41.tgz"
-  integrity sha512-Q1WDF3u1vYeAwjHo4YuddkA8Aq0TulbKjmGm99+Atn13Lf5fTsMZBnBV9T741w8iSyPFG6Uh6sapQby77sREqA==
-  dependencies:
-    "@iden3/bigarray" "0.0.2"
-    "@iden3/binfileutils" "0.0.11"
-    fastfile "0.0.20"
-    ffjavascript "0.2.56"
-
 r1csfile@0.0.48:
   version "0.0.48"
   resolved "https://registry.npmjs.org/r1csfile/-/r1csfile-0.0.48.tgz"
@@ -4566,6 +4549,16 @@ r1csfile@0.0.48:
     "@iden3/binfileutils" "0.0.12"
     fastfile "0.0.20"
     ffjavascript "0.3.0"
+
+r1csfile@^0.0.41:
+  version "0.0.41"
+  resolved "https://registry.npmjs.org/r1csfile/-/r1csfile-0.0.41.tgz"
+  integrity sha512-Q1WDF3u1vYeAwjHo4YuddkA8Aq0TulbKjmGm99+Atn13Lf5fTsMZBnBV9T741w8iSyPFG6Uh6sapQby77sREqA==
+  dependencies:
+    "@iden3/bigarray" "0.0.2"
+    "@iden3/binfileutils" "0.0.11"
+    fastfile "0.0.20"
+    ffjavascript "0.2.56"
 
 randombytes@^2.1.0:
   version "2.1.0"
@@ -4911,23 +4904,7 @@ slash@^3.0.0:
   resolved "https://registry.npmjs.org/slash/-/slash-3.0.0.tgz"
   integrity sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==
 
-snarkjs@0.5.0:
-  version "0.5.0"
-  resolved "https://registry.npmjs.org/snarkjs/-/snarkjs-0.5.0.tgz"
-  integrity sha512-KWz8mZ2Y+6wvn6GGkQo6/ZlKwETdAGohd40Lzpwp5TUZCn6N6O4Az1SuX1rw/qREGL6Im+ycb19suCFE8/xaKA==
-  dependencies:
-    "@iden3/binfileutils" "0.0.11"
-    bfj "^7.0.2"
-    blake2b-wasm "^2.4.0"
-    circom_runtime "0.1.21"
-    ejs "^3.1.6"
-    fastfile "0.0.20"
-    ffjavascript "0.2.56"
-    js-sha3 "^0.8.0"
-    logplease "^1.2.15"
-    r1csfile "0.0.41"
-
-snarkjs@0.7.5, snarkjs@^0.7.4, snarkjs@^0.7.5:
+snarkjs@0.5.0, snarkjs@0.7.5, snarkjs@^0.7.4, snarkjs@^0.7.5, "snarkjs@https://github.com/sampritipanda/snarkjs.git#fef81fc51d17a734637555c6edbd585ecda02d9e":
   version "0.7.5"
   resolved "https://registry.npmjs.org/snarkjs/-/snarkjs-0.7.5.tgz"
   integrity sha512-h+3c4rXZKLhLuHk4LHydZCk/h5GcNvk5GjVKRRkHmfb6Ntf8gHOA9zea3g656iclRuhqQ3iKDWFgiD9ypLrKiA==
@@ -4942,23 +4919,6 @@ snarkjs@0.7.5, snarkjs@^0.7.4, snarkjs@^0.7.5:
     js-sha3 "^0.8.0"
     logplease "^1.2.15"
     r1csfile "0.0.48"
-
-"snarkjs@https://github.com/sampritipanda/snarkjs.git#fef81fc51d17a734637555c6edbd585ecda02d9e":
-  version "0.5.0"
-  resolved "git+ssh://git@github.com/sampritipanda/snarkjs.git#fef81fc51d17a734637555c6edbd585ecda02d9e"
-  integrity sha512-kr8eeD5wrnoJmPROtxV6RKMZ8pRCAXDDK2Exl6wqBSJJ0OgSx7x7WIzQds8SvJsEKRI6+VRsQ7ybg6QEbZn/Bg==
-  dependencies:
-    "@iden3/binfileutils" "0.0.11"
-    bfj "^7.0.2"
-    blake2b-wasm "^2.4.0"
-    circom_runtime "0.1.21"
-    ejs "^3.1.6"
-    fastfile "0.0.20"
-    ffjavascript "0.2.56"
-    js-sha3 "^0.8.0"
-    localforage "^1.10.0"
-    logplease "^1.2.15"
-    r1csfile "0.0.41"
 
 "source-map-js@>=0.6.2 <2.0.0", source-map-js@^1.0.2, source-map-js@^1.2.1:
   version "1.2.1"
