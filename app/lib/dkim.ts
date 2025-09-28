@@ -64,7 +64,7 @@ export async function verifyDkimAndSubject(
   const auth = await authenticateMail(eml);
   const dkim = auth?.dkim as any;
   const results = dkim?.results || [];
-  const passed = results.find((r) => 
+  const passed = results.find((r: any) => 
     r?.status?.result === "pass" || 
     (r?.status?.result === "neutral" && r?.status?.comment === "expired")
   );

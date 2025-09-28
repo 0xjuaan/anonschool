@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { SignedMessageWithProof } from "../../../lib/types";
+// import type { SignedMessageWithProof } from "../../../lib/types";
 import { getAdminTokenFromRequest, verifySessionToken } from "../../../lib/admin-auth";
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -40,7 +40,7 @@ async function getSingleMessage(req: NextApiRequest, res: NextApiResponse) {
       .from("messages")
       .select(
         /* eslint-disable-next-line max-len */
-        "id, group_id, group_provider, text, timestamp, internal, likes, memberships(proof, pubkey_expiry, proof_args)"
+        "id, group_id, group_provider, text, timestamp, internal, likes, signature, pubkey, memberships(proof, pubkey_expiry, proof_args)"
       )
       .eq("id", id)
       .single();
@@ -80,13 +80,14 @@ async function getSingleMessage(req: NextApiRequest, res: NextApiResponse) {
       }
     }
 
-    const message: SignedMessageWithProof = {
+    const message = {
       id: data.id,
       anonGroupId: data.group_id,
       anonGroupProvider: data.group_provider,
       text: data.text,
       timestamp: data.timestamp,
       ephemeralPubkey: data.pubkey,
+      signature: data.signature,
       // @ts-expect-error memberships is not array
       ephemeralPubkeyExpiry: data.memberships.pubkey_expiry,
       internal: data.internal,
