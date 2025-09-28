@@ -10,6 +10,7 @@ const JoinNSPage: React.FC = () => {
   const [secretKey, setSecretKey] = useState<{ privateKey: string; secretScalar: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showEmlHelp, setShowEmlHelp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -123,7 +124,7 @@ const JoinNSPage: React.FC = () => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <Head>
         <title>Join AnonSchool - Anonymous Network School Forum</title>
         <meta 
@@ -131,6 +132,73 @@ const JoinNSPage: React.FC = () => {
           content="Join AnonSchool by verifying your Network School acceptance email with zero-knowledge proofs." 
         />
       </Head>
+      {showEmlHelp && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-900">How to get your .EML file</h2>
+                <button onClick={() => setShowEmlHelp(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <p className="text-sm text-blue-900">
+                  Search your inbox for <span className="font-semibold">subject</span> "Network School Acceptance" from <span className="font-semibold">mail@mail.ns.com</span>.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Gmail</h3>
+                  <ol className="list-decimal list-inside text-sm text-slate-700 space-y-1">
+                    <li>Open the email</li>
+                    <li>Click three dots (More options)</li>
+                    <li>Select "Download message"</li>
+                  </ol>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Apple Mail</h3>
+                  <ol className="list-decimal list-inside text-sm text-slate-700 space-y-1">
+                    <li>File → Save As</li>
+                    <li>Select "Raw Message Source"</li>
+                    <li>Save with .eml extension</li>
+                  </ol>
+                  <p className="text-xs text-slate-500 mt-1">Or drag the email to your desktop.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Outlook (Web)</h3>
+                  <ol className="list-decimal list-inside text-sm text-slate-700 space-y-1">
+                    <li>Open the email</li>
+                    <li>Click three dots (More options)</li>
+                    <li>Select "Save"</li>
+                  </ol>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Outlook (Desktop)</h3>
+                  <ol className="list-decimal list-inside text-sm text-slate-700 space-y-1">
+                    <li>File → Save As</li>
+                    <li>Choose location</li>
+                    <li>Ensure file type is .eml</li>
+                  </ol>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <a href="https://docs.zk.email/zk-email-sdk/get-eml-file" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  View full guide
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div className="min-h-screen bg-slate-50 py-8 px-4 sm:py-12">
         <div className="max-w-2xl mx-auto">
@@ -155,8 +223,25 @@ const JoinNSPage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8">
             <form onSubmit={onSubmit} className="space-y-6">
               
-              {/* File Upload Area */}
-              <div 
+              {/* Help + File Upload Area */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Network School Acceptance Email (.eml file)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmlHelp(true)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    How to get .eml?
+                  </button>
+                </div>
+
+                <div 
                 className={`
                   relative border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-all
                   ${dragOver 
@@ -214,6 +299,7 @@ const JoinNSPage: React.FC = () => {
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
+                </div>
               </div>
               
               {/* Submit Button */}
@@ -335,7 +421,7 @@ const JoinNSPage: React.FC = () => {
           )}
         </div>
       </div>
-    </>
+    </React.Fragment>
   );
 };
 

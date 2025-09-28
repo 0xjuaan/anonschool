@@ -131,7 +131,7 @@ const NSMessageForm: React.FC<NSMessageFormProps> = ({ onSubmit }) => {
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
                   strokeWidth="2" 
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+                  d="M13 7l5 5m0 0l-5 5m5-5H6" 
                 />
               </svg>
               Post
