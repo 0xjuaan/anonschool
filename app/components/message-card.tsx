@@ -161,7 +161,7 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
           {isGroupPage ? (
             <span>{anonGroup.title}</span>
           ) : (
-            <Link href={`/domain/${message.anonGroupId}`}>{anonGroup.title}</Link>
+            <Link href={`https://ns.com`}>{anonGroup.title}</Link>
           )}
 
           {isMessagePage ? (
