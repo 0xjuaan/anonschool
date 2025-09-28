@@ -14,7 +14,7 @@ class NSDKIMProvider implements AnonGroupProvider {
   getAnonGroup(groupId: string): AnonGroup {
     return {
       id: groupId,
-      title: NS_DOMAIN,
+      title: "Network School",
       logoUrl: "https://ns.com/favicon.ico"
     };
   }
