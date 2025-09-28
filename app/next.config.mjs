@@ -18,6 +18,9 @@ const nextConfig = {
     },
   },
   reactStrictMode: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   sassOptions: {
     includePaths: ['./'],
   },

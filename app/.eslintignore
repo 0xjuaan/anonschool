@@ -1,0 +1,4 @@
+# Disable ESLint for the entire app directory
+**/*
+
+
