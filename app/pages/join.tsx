@@ -207,7 +207,7 @@ const JoinNSPage: React.FC = () => {
               Join AnonSchool
             </h1>
               <p className="text-slate-600 text-lg mb-3">
-                Upload your acceptance email (.eml). We'll generate a zero-knowledge proof without revealing the email contents.
+                Upload your acceptance email (.eml). It will be used to generate a ZK proof without revealing the email contents.
               </p>
               <p className="text-sm text-slate-500 mb-6 flex items-center justify-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
