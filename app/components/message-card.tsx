@@ -11,6 +11,7 @@ import { hasEphemeralKey } from "../lib/ephemeral-key";
 import { loadIdentity } from "../lib/ns-client";
 import { verifyMessage } from "../lib/core";
 import { Providers } from "../lib/providers";
+import Head from "next/head";
 
 interface MessageCardProps {
   message: SignedMessageWithProof;
@@ -234,6 +235,24 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
             )}
             <span className="like-count">{likeCount}</span>
           </button>
+          {/* Admin delete (visible when admin session cookie exists; UI flag gates visibility) */}
+          {typeof window !== 'undefined' && localStorage.getItem('adminEnabled') === 'true' && (
+            <button
+              onClick={async () => {
+                try {
+                  const resp = await fetch(`/api/messages/${message.id}`, { method: 'DELETE' });
+                  if (!resp.ok) throw new Error('Delete failed');
+                  window.location.reload();
+                } catch (e) {
+                  console.error(e);
+                  alert('Failed to delete message');
+                }
+              }}
+              className="ml-2 text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>

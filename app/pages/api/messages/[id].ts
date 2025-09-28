@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { SignedMessageWithProof } from "../../../lib/types";
+import { getAdminTokenFromRequest, verifySessionToken } from "../../../lib/admin-auth";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -17,8 +18,10 @@ export default async function handler(
 ) {
   if (req.method === "GET") {
     getSingleMessage(req, res);
+  } else if (req.method === "DELETE") {
+    deleteMessage(req, res);
   } else {
-    res.setHeader("Allow", ["GET"]);
+    res.setHeader("Allow", ["GET", "DELETE"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
@@ -100,5 +103,33 @@ async function getSingleMessage(req: NextApiRequest, res: NextApiResponse) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
     res.end();
+  }
+}
+
+async function deleteMessage(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const { id } = req.query;
+    if (!id) {
+      res.status(400).json({ error: "Message ID is required" });
+      return;
+    }
+
+    // Admin auth via signed cookie-based session
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      res.status(500).json({ error: "ADMIN_PASSWORD not configured" });
+      return;
+    }
+    const token = getAdminTokenFromRequest(req);
+    const ok = verifySessionToken(adminPassword, token);
+    if (!ok) return res.status(401).json({ error: "Unauthorized" });
+
+    const { error } = await supabase.from("messages").delete().eq("id", id);
+    if (error) throw error;
+
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to delete message" });
   }
 }
