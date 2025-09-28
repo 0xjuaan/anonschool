@@ -135,7 +135,6 @@ const postTweet = async (message: Message): Promise<boolean> => {
         previousTweetId = reply.data.id;
       }
     }
-    console.log('Successfully tweeted:', message.text);
     return true;
   } catch (error) {
     console.error('Error posting tweet:', error);

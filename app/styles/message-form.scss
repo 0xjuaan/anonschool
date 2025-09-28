@@ -1,19 +1,33 @@
 .message-form {
-  border: 1px solid var(--shade-400);
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.1);
-  border-radius: 5px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
   margin-bottom: 1.5rem;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+
+  &:focus-within {
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-md);
+  }
 
   textarea {
     width: 100%;
-    min-height: 100px;
+    min-height: 120px;
     border: none;
     resize: vertical;
-    font-size: 16px;
-    padding: 1rem;
+    font-size: 1rem;
+    padding: 1.5rem;
     background-color: transparent;
     margin-bottom: 0;
+    color: var(--text-primary);
+    font-family: inherit;
+    line-height: 1.5;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
 
     &:focus {
       outline: none;
@@ -21,7 +35,8 @@
 
     &:disabled {
       cursor: not-allowed;
-      background-color: var(--shade-100);
+      background-color: var(--bg-secondary);
+      opacity: 0.7;
     }
   }
 }
@@ -30,22 +45,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--shade-200);
-  padding: 0.5rem 0.5rem 0.5rem 0.8rem;
+  border-top: 1px solid var(--border-primary);
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-secondary);
 }
 
 .message-form-character-count {
-  position: absolute;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  color: var(--shade-600);
-  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
   flex-grow: 1;
 }
 
 .message-form-footer-message {
-  font-size: 0.85rem;
-  color: var(--shade-700);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
   font-style: italic;
   padding-right: 0.5rem;
 }
@@ -96,24 +109,33 @@
 }
 
 .message-form-post-button {
-  background-color: var(--primary-900);
+  background-color: var(--primary-600);
   color: white;
   border: none;
-  border-radius: 3px;
-  padding: 0.5rem 1rem;
-  font-weight: bold;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: background-color 0.2s;
-  min-width: 70px;
-  height: 2rem;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  height: auto;
 
   &:hover {
-    background-color: var(--primary-950);
+    background-color: var(--primary-700);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &:disabled {
-    background-color: var(--shade-400);
+    background-color: var(--text-muted);
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 }
 
@@ -124,29 +146,31 @@
 }
 
 .message-form-oauth-button {
-  background-color: white;
-  border: 1px solid var(--shade-400);
-  border-radius: 0px;
-  padding: 0.5rem;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: all 0.3s ease;
-  height: 40px;
-  width: 40px;
+  transition: all 0.2s ease;
+  height: 44px;
+  width: 44px;
   margin-right: 0.5rem;
 
   &:hover {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    background-color: #f8f9fa;
+    box-shadow: var(--shadow-sm);
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-secondary);
   }
 
   &:disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
+    background-color: var(--bg-secondary);
+    color: var(--text-muted);
     cursor: not-allowed;
+    opacity: 0.6;
   }
 
   &:last-child {
@@ -155,17 +179,41 @@
 }
 
 @media (max-width: 768px) {
-  .message-form-character-count {
-    display: none;
+  .message-form {
+    margin-bottom: 1rem;
+    
+    textarea {
+      padding: 1rem;
+      min-height: 100px;
+      font-size: 16px; // Prevent zoom on iOS
+    }
   }
 
-  .message-form-refresh-button {
-    margin-right: 0;
-    margin-bottom: 0.5rem;
+  .message-form-footer {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .message-form-character-count {
+    order: -1;
+    text-align: center;
   }
 
   .message-form-footer-message {
     font-size: 0.8rem;
-    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .message-form-footer-buttons {
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .message-form-post-button {
+    padding: 0.75rem 2rem;
+    width: 100%;
+    max-width: 200px;
   }
 }

@@ -6,6 +6,7 @@ import { fetchMessages } from "../lib/api";
 import MessageCard from "./message-card";
 import { SignedMessageWithProof } from "../lib/types";
 import MessageForm from "./message-form";
+import NSMessageForm from "./ns-message-form";
 
 const MESSAGES_PER_PAGE = 30;
 const INITIAL_POLL_INTERVAL = 10000; // 10 seconds
@@ -179,7 +180,11 @@ const MessageList: React.FC<MessageListProps> = ({
   return (
     <>
       {showMessageForm && (
-        <MessageForm isInternal={isInternal} onSubmit={onNewMessageSubmit} />
+        isInternal ? (
+          <MessageForm isInternal={true} onSubmit={onNewMessageSubmit} />
+        ) : (
+          <NSMessageForm onSubmit={onNewMessageSubmit} />
+        )
       )}
 
       <div className="message-list" ref={messageListRef}>

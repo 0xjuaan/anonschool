@@ -52,8 +52,6 @@ export const JWTCircuitHelper = {
       },
     };
 
-    console.log("JWT circuit inputs", inputs);
-
     const { Noir, UltraHonkBackend } = await initProver();
     const circuitArtifact = await import(`../../assets/jwt/circuit.json`);
     const backend = new UltraHonkBackend(circuitArtifact.bytecode, { threads: 8 });

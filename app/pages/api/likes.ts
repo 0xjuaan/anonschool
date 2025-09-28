@@ -1,5 +1,26 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { verifyProof } from "@semaphore-protocol/proof";
+import type { BigNumberish } from "ethers";
+import { encodeBytes32String } from "ethers/abi";
+import { toBigInt as _toBigInt } from "ethers/utils";
+
+/**
+ * Converts a bignumberish or a text to a bigint.
+ * @param value The value to be converted to bigint.
+ * @return The value converted to bigint.
+ */
+function toBigInt(value: BigNumberish | Uint8Array | string): bigint {
+    try {
+        return _toBigInt(value)
+    } catch (error: any) {
+        if (typeof value === "string") {
+            return _toBigInt(encodeBytes32String(value))
+        }
+
+        throw TypeError(error instanceof Error ? error.message : error.toString())
+    }
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -24,69 +45,62 @@ export default async function handler(
 
 async function postLike(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { messageId, like } = req.body;
+    const { messageId, proof } = req.body;
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res
-        .status(401)
-        .json({ error: "Authorization required for internal messages" });
-      res.end();
-      return;
+    // create scope based on the messageId
+    const scope = `ns-like-${messageId}`;
+    
+    // Convert scope to BigInt using the same method as Semaphore
+    const scopeBigInt = toBigInt(scope);
+
+    console.log("🎯 Scope:", scope);
+    console.log("🌳 Proofs scope:", proof.scope);
+    console.log("🔢 Expected scope as BigInt:", scopeBigInt.toString());
+
+    // require that the proof's scope matches the message
+    if (BigInt(proof.scope) !== scopeBigInt) {
+      return res.status(400).json({ error: "Proof scope does not match message ID" });
     }
 
-    const pubkey = authHeader.split(" ")[1];
+    // Hash the nullifier for consistent querying
+    const hashedNullifier = await crypto.subtle.digest('SHA-256', 
+      new TextEncoder().encode(proof.nullifier)
+    );
+    const hashedNullifierHex = Array.from(new Uint8Array(hashedNullifier))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
-    if (!messageId || !pubkey) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Validate pubkey
-    const { data: membershipData } = await supabase
-      .from("memberships")
-      .select()
-      .eq("pubkey", pubkey)
-      .single();
-
-    if (!membershipData || !membershipData.pubkey) {
-      return res.status(400).json({ error: "Invalid pubkey" });
-    }
-
-    // Check if message already liked
-    const { data: existingLike } = await supabase
+    // use the nullifier existence to define `existingLike`
+    const { data: existingLikeData } = await supabase
       .from("likes")
       .select()
       .eq("message_id", messageId)
-      .eq("pubkey", pubkey)
+      .eq("nullifier", hashedNullifierHex)
       .single();
 
-    if (like && !existingLike) {
+    const existingLike = existingLikeData !== null;
+
+    // validate the proof
+    const valid = await verifyProof(proof);
+
+    if (!valid) {
+      return res.status(400).json({ error: "Invalid proof" });
+    }
+
+    // Use the already hashed nullifier from above
+
+    if (!existingLike) {
       // Like
-      await Promise.all([
-        supabase.from("likes").insert({
-          message_id: messageId,
-          pubkey,
-        }),
-        supabase.rpc("increment_likes_count", {
-          message_id: messageId,
-        }),
-      ]);
+      await supabase.from("likes").insert({
+        message_id: messageId,
+        nullifier: hashedNullifierHex,
+      });
     }
 
-    if (!like && existingLike) {
+    if (existingLike) {
       // Unlike
-      await Promise.all([
-        supabase
-          .from("likes")
-          .delete()
-          .eq("message_id", messageId)
-          .eq("pubkey", pubkey),
-        supabase.rpc("decrement_likes_count", {
-          message_id: messageId,
-        }),
-      ]);
+      await supabase.from("likes").delete().eq("message_id", messageId).eq("nullifier", hashedNullifierHex);
     }
-
     return res.status(200).json({ liked: !existingLike });
   } catch (error) {
     console.error("Error handling like:", error);

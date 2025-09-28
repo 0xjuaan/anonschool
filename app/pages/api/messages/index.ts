@@ -111,7 +111,7 @@ export async function fetchMessages(
   let query = supabase
     .from("messages")
     .select(
-      "id, text, timestamp, signature, pubkey, internal, likes, group_id, group_provider"
+      "id, text, timestamp, internal, likes, group_id, group_provider"
     )
     .order("timestamp", { ascending: false })
     .limit(limit);
@@ -135,43 +135,7 @@ export async function fetchMessages(
       new Date(Number(beforeTimestamp)).toISOString()
     );
   }
-
-  // Internal messages require a valid pubkey from the same group (as Authorization header)
-  if (isInternal) {
-    if (!groupId) {
-      res
-        .status(400)
-        .json({ error: "Group ID is required for internal messages" });
-      res.end();
-      return;
-    }
-
-    const authHeader = request.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      res
-        .status(401)
-        .json({ error: "Authorization required for internal messages" });
-      res.end();
-      return;
-    }
-
-    const pubkey = authHeader.split(" ")[1];
-    const { data: membershipData, error: membershipError } = await supabase
-      .from("memberships")
-      .select("*")
-      .eq("pubkey", pubkey)
-      .eq("group_id", groupId)
-      .single();
-
-    if (membershipError || !membershipData) {
-      res.status(401).json({ error: "Invalid public key for this group" });
-      res.end();
-      return;
-    }
-  }
-
   const { data, error } = await query;
-
   if (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
@@ -182,11 +146,9 @@ export async function fetchMessages(
   const messages: Partial<SignedMessage>[] = data.map((message) => ({
     id: message.id,
     anonGroupId: message.group_id,
-    anonGroupProvider: message.group_provider,
+    anonGroupProvider: "ns-dkim", // Always use ns-dkim provider
     text: message.text,
     timestamp: message.timestamp,
-    signature: message.signature,
-    ephemeralPubkey: message.pubkey,
     internal: message.internal,
     likes: message.likes,
   }));
