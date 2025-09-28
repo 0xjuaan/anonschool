@@ -64,10 +64,40 @@ const NSMessageForm: React.FC<NSMessageFormProps> = ({ onSubmit }) => {
   if (joinNeeded) {
     return (
       <div className="message-form">
-        <div className="article text-center">
-          <p className="mb-05">
-          To post, you need to join first. Go to the <Link href="/join">Join Page</Link>.
-          </p>
+        <div className="text-center py-6">
+          <div className="flex justify-center gap-4">
+            <a 
+              href="/join" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 
+                         text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl 
+                         transform hover:-translate-y-0.5"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" 
+                />
+              </svg>
+              Join AnonSchool
+            </a>
+            <a 
+              href="/recover" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-slate-600 hover:bg-slate-700 
+                         text-white font-semibold rounded-xl transition-all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+              Recover Account
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -85,14 +115,27 @@ const NSMessageForm: React.FC<NSMessageFormProps> = ({ onSubmit }) => {
       />
       <div className="message-form-footer">
         <button 
-          className={`message-form-submit ${posting ? 'loading' : ''}`}
+          className={`inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 
+                     text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl 
+                     transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed 
+                     disabled:transform-none disabled:shadow-lg min-w-[100px] ${posting ? 'loading' : ''}`}
           onClick={onPost} 
           disabled={posting || text.trim().length === 0}
         >
           {posting ? (
             <span className="spinner-icon small"></span>
           ) : (
-            "Post"
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+                />
+              </svg>
+              Post
+            </>
           )}
         </button>
         {status && <span className="message-form-status">{status}</span>}

@@ -4,11 +4,7 @@ import React from "react";
 import dynamic from "next/dynamic";
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <main className="container">
-      <div className="content">{children}</div>
-    </main>
-  );
+  return <>{children}</>;
 };
 
 const LayoutClient = dynamic(() => Promise.resolve(Layout), {

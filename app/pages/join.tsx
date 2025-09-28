@@ -1,21 +1,55 @@
-'use client'
-
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { ensureIdentity, getIdCommitmentString } from "../lib/ns-client";
-import { initZkEmailSdk, Proof } from "@zk-email/sdk";
+import { initZkEmailSdk } from "@zk-email/sdk";
 
 const JoinNSPage: React.FC = () => {
   const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [secretKey, setSecretKey] = useState<{ privateKey: string; secretScalar: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.eml') || file.type === 'message/rfc822')) {
+      handleFileSelect(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fileInput = (e.currentTarget.elements.namedItem("eml") as HTMLInputElement);
-    const file = fileInput?.files?.[0];
-    if (!file) {
+    if (!selectedFile) {
       setStatus("Please select an .eml file.");
       return;
     }
@@ -25,7 +59,7 @@ const JoinNSPage: React.FC = () => {
       setStatus("Starting proof generation... This will take 5-20 seconds. Please keep this tab open.");
       
       // Read the file
-      const eml = await file.text();
+      const eml = await selectedFile.text();
 
       // Initialize the SDK
       const sdk = initZkEmailSdk();
@@ -38,8 +72,6 @@ const JoinNSPage: React.FC = () => {
       
       // Generate the proof with progress updates
       const zkProof = await prover.generateProof(eml);
-
-      
 
       // Generate Semaphore identity
       setStatus("Generating anonymous identity...");
@@ -91,83 +123,219 @@ const JoinNSPage: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", padding: 20 }}>
-      <h1>AnonSchool</h1>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <p style={{ margin: 0 }}>Upload your acceptance email (.eml). We'll generate a zero-knowledge proof that you received an acceptance email, without revealing the email contents.</p>
-        <a 
-          href="/recover" 
-          style={{ 
-            padding: "8px 16px", 
-            background: "#f0f0f0", 
-            borderRadius: 4, 
-            textDecoration: 'none',
-            color: '#666',
-            fontSize: '0.9em'
-          }}
-        >
-          Recover Account
-        </a>
-      </div>
-      
-      <form onSubmit={onSubmit}>
-        <input 
-          type="file" 
-          name="eml" 
-          accept="message/rfc822,.eml"
-          disabled={loading}
+    <>
+      <Head>
+        <title>Join AnonSchool - Anonymous Network School Forum</title>
+        <meta 
+          name="description" 
+          content="Join AnonSchool by verifying your Network School acceptance email with zero-knowledge proofs." 
         />
-        <div style={{ marginTop: 12 }}>
-          <button type="submit" disabled={loading}>
-            {loading ? "Generating proof..." : "Verify & Join"}
-          </button>
-        </div>
-      </form>
+      </Head>
+      
+      <div className="min-h-screen bg-slate-50 py-8 px-4 sm:py-12">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-slate-900 mb-4">
+              Join AnonSchool
+            </h1>
+            <p className="text-slate-600 text-lg mb-6">
+              Upload your acceptance email (.eml). We'll generate a zero-knowledge proof without revealing the email contents.
+            </p>
+            <a 
+              href="/recover" 
+              className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-500 font-medium"
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Recover Account
+            </a>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8">
+            <form onSubmit={onSubmit} className="space-y-6">
+              
+              {/* File Upload Area */}
+              <div 
+                className={`
+                  relative border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-all
+                  ${dragOver 
+                    ? 'border-indigo-400 bg-indigo-50' 
+                    : selectedFile 
+                      ? 'border-green-400 bg-green-50' 
+                      : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                  }
+                `}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={triggerFileInput}
+              >
+                {selectedFile ? (
+                  <div className="space-y-3">
+                    <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900">{selectedFile.name}</p>
+                      <p className="text-sm text-slate-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                    </div>
+                    <p className="text-xs text-slate-400">Click to select a different file</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 mx-auto bg-indigo-100 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-slate-900 mb-2">
+                        Drop your .eml file here
+                      </p>
+                      <p className="text-slate-600">
+                        or <span className="text-indigo-600 font-medium">click to browse</span>
+                      </p>
+                      <p className="text-xs text-slate-400 mt-2">
+                        Network School acceptance email only
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  name="eml" 
+                  accept="message/rfc822,.eml"
+                  disabled={loading}
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+              </div>
+              
+              {/* Submit Button */}
+              <button 
+                type="submit" 
+                disabled={loading || !selectedFile} 
+                className={`
+                  w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200
+                  ${loading || !selectedFile
+                    ? 'bg-slate-400 cursor-not-allowed' 
+                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  }
+                `}
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Generating Proof...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Verify & Join AnonSchool</span>
+                  </div>
+                )}
+              </button>
+            </form>
 
-      {status && (
-        <p style={{ marginTop: 12 }}>{status}</p>
-      )}
+            {/* Status Message */}
+            {status && (
+              <div className={`
+                mt-6 p-4 rounded-xl border-l-4 
+                ${loading 
+                  ? 'bg-blue-50 text-blue-800 border-blue-400' 
+                  : status.includes('Success') || status.includes('already registered')
+                    ? 'bg-green-50 text-green-800 border-green-400'
+                    : status.includes('error') || status.includes('failed')
+                      ? 'bg-red-50 text-red-800 border-red-400'
+                      : 'bg-slate-50 text-slate-700 border-slate-400'
+                }
+              `}>
+                <div className="flex items-start gap-3">
+                  {loading && (
+                    <svg className="animate-spin w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  <div>
+                    <p className="font-medium">{status}</p>
+                    {loading && (
+                      <p className="text-xs mt-1 opacity-80">This may take 5-20 seconds. Please keep this tab open.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-      {secretKey && !loading && (
-        <div style={{ marginTop: 20, padding: 20, border: '2px solid #ff6b6b', borderRadius: 8 }}>
-          <h3 style={{ color: '#ff6b6b' }}>⚠️ IMPORTANT: Save Your Secret Key</h3>
-          <p style={{ marginBottom: 15 }}>
-            This is your account recovery key. Save it somewhere safe - you will need it to recover your account if you clear your browser data.
-            <br />
-            <strong>This key will only be shown once!</strong>
-            <br />
-            <small style={{ color: '#666' }}>
-              The key contains two parts: a private key and a secret scalar. Save both parts exactly as shown.
-            </small>
-          </p>
-          <pre style={{ 
-            background: '#f5f5f5', 
-            padding: 10, 
-            borderRadius: 4,
-            overflow: 'auto',
-            fontSize: '0.8em',
-            marginBottom: 15
-          }}>
-            {JSON.stringify(secretKey, null, 2)}
-          </pre>
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(JSON.stringify(secretKey, null, 2));
-              alert('Secret key copied to clipboard!');
-            }}
-            style={{ marginRight: 10 }}
-          >
-            Copy to Clipboard
-          </button>
-          <button 
-            onClick={() => router.push('/')}
-            style={{ background: '#4CAF50', color: 'white' }}
-          >
-            I've Saved My Key - Continue to Forum
-          </button>
+          {/* Secret Key Display */}
+          {secretKey && !loading && (
+            <div className="mt-8 bg-red-50 border-2 border-red-200 rounded-2xl p-6 sm:p-8">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-red-800 mb-2">
+                    🔐 Save Your Secret Key
+                  </h3>
+                  <div className="space-y-2 text-red-700">
+                    <p className="font-medium">
+                      This is your account recovery key. Store it safely - you'll need it to recover your account.
+                    </p>
+                    <p className="font-bold">
+                      ⚠️ This key will only be shown ONCE!
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
+                <pre className="text-sm text-slate-800 overflow-x-auto whitespace-pre-wrap break-all font-mono">
+                  {JSON.stringify(secretKey, null, 2)}
+                </pre>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(secretKey, null, 2));
+                    alert('✅ Secret key copied to clipboard!');
+                  }}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy to Clipboard
+                </button>
+                <button 
+                  onClick={() => router.push('/')}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  Continue to Forum
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
 

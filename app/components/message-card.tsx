@@ -8,6 +8,7 @@ import { generateNameFromPubkey } from "../lib/utils";
 import { setMessageLiked, isMessageLiked } from "../lib/store";
 import { fetchMessage, toggleLike, checkLikeStatus, getLikeCount } from "../lib/api";
 import { hasEphemeralKey } from "../lib/ephemeral-key";
+import { loadIdentity } from "../lib/ns-client";
 import { verifyMessage } from "../lib/core";
 import { Providers } from "../lib/providers";
 
@@ -223,7 +224,7 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
         <div className="like-button-container">
           <button
             onClick={onLikeClick}
-            disabled={!hasEphemeralKey() || likeStatusLoading}
+            disabled={!loadIdentity() || likeStatusLoading}
             className={`like-button ${isLiked ? "liked" : ""} ${likeStatusLoading ? "loading" : ""}`}
           >
             {likeStatusLoading ? (

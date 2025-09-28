@@ -1,17 +1,22 @@
 .message-list {
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  overflow-y: scroll;
-  max-width: 800px;
+  gap: 1rem;
+  width: 100%;
 }
 
 .message-card {
-  border: 1px solid var(--shade-200);
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.1);
-  border-radius: 5px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-secondary);
+  }
 }
 
 .message-card-header {
@@ -22,8 +27,8 @@
 }
 
 .message-card-header-text {
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
   margin: 0;
 }
 
@@ -34,28 +39,30 @@
 
 .message-card-header-sender-text {
   @extend .message-card-header-text;
-  font-size: 0.7rem;
-  line-height: 0.7rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
   opacity: 0.8;
 }
 
 .message-card-header-sender-name {
   font-size: 1rem;
-  line-height: 1.2rem;
-  font-weight: 500;
-  color: var(--primary-800);
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--primary-600);
 
   a {
     text-decoration: none;
+    transition: color 0.2s ease;
 
     &:hover {
+      color: var(--primary-500);
       text-decoration: underline;
     }
   }
 
   &.internal {
-    font-weight: normal;
-    color: var(--shade-900);
+    font-weight: 500;
+    color: var(--text-primary);
     font-size: 0.9rem;
   }
 }
@@ -134,6 +141,9 @@ a.message-card-header-logo:hover {
 .message-card-content {
   padding-top: 0.5rem;
   white-space: break-spaces;
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 .message-card-skeleton {
@@ -142,13 +152,44 @@ a.message-card-header-logo:hover {
 }
 
 @media (max-width: 768px) {
+  .message-card {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  .message-card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .message-card-header-sender {
+    width: 100%;
+  }
+
   .message-card-header-sender-name {
     display: flex;
     flex-direction: column;
+    gap: 0.25rem;
   }
 
   .message-card-header-timestamp {
     margin-left: 0;
+    font-size: 0.75rem;
+  }
+
+  .message-card-verify-status {
+    align-self: flex-end;
+    margin-top: -1rem;
+  }
+
+  .message-card-content {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .message-card-footer {
+    margin-top: 1rem;
   }
 }
 
@@ -163,30 +204,33 @@ a.message-card-header-logo:hover {
 
 .like-button {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   border: 0;
   background: transparent;
   font-size: 1rem;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 9999px;
-  margin-left: -4px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  margin-left: -8px;
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
   
   span {
-    fill: #e53e3e !important;
+    fill: var(--accent-red) !important;
   }
 
   &:hover {
-    background: #ffeaea;
-    color: #e53e3e;
+    background: var(--bg-tertiary);
+    color: var(--accent-red);
 
     span path {
-      stroke: #e53e3e !important;
+      stroke: var(--accent-red) !important;
     }
   }
 
   &:disabled {
     cursor: not-allowed;
+    opacity: 0.5;
   }
 }
 
