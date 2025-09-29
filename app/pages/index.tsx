@@ -116,10 +116,10 @@ export default function HomePage() {
                       </div>
                       <div>
                         <h3 className="text-base font-semibold text-slate-900 mb-0.5">
-                          1. Upload Email
+                          1. Provide Email
                         </h3>
                         <p className="text-sm text-slate-600">
-                          Upload your Network School acceptance email (.eml file) to generate a ZK proof that you're a verified member.
+                          Securely provide your Network School acceptance email (.eml file) to generate a ZK proof that you're a verified member.
                         </p>
                       </div>
                     </div>
@@ -136,7 +136,7 @@ export default function HomePage() {
                           2. Anonymous Identity
                         </h3>
                         <p className="text-sm text-slate-600">
-                          A unique anonymous commitment is created and added to the verified member set, without revealing your real identity.
+                          An anonymous commitment is created and added to the verified member set, without revealing your real identity.
                         </p>
                       </div>
                     </div>
