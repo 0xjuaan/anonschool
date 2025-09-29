@@ -119,7 +119,7 @@ export default function HomePage() {
                           1. Provide Email
                         </h3>
                         <p className="text-sm text-slate-600">
-                          Securely provide your Network School acceptance email (.eml file) to generate a ZK proof that you're a verified member.
+                          Securely provide your Network School acceptance email (.eml file) to generate a ZK proof that you're a verified member. (Coming soon: more verification methods)
                         </p>
                       </div>
                     </div>
