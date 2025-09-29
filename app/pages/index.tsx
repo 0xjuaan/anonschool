@@ -199,6 +199,15 @@ export default function HomePage() {
                 </svg>
                 <span className="font-medium">View on GitHub</span>
               </a>
+              <div className="text-slate-300">•</div>
+              <a
+                href="https://zk.email"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <span className="font-medium">Powered by ZK Email</span>
+              </a>
             </div>
           </footer>
         </div>

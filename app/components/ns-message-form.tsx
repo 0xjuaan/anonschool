@@ -106,7 +106,7 @@ const NSMessageForm: React.FC<NSMessageFormProps> = ({ onSubmit }) => {
   return (
     <div className="message-form">
       <textarea
-        placeholder="Share your feedback..."
+        placeholder="Share your thoughts anonymously..."
         rows={3}
         maxLength={280}
         className="message-form-input"
