@@ -167,7 +167,7 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
           {isMessagePage ? (
             timestampComponent
           ) : (
-            <Link href={`/messages/${message.id}`}>{timestampComponent}</Link>
+            <span>{timestampComponent}</span>
           )}
         </div>
       </span>
