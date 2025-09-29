@@ -30,6 +30,7 @@ const MessageList: React.FC<MessageListProps> = ({
   const [error, setError] = useState("");
   const [pollInterval, setPollInterval] = useState(INITIAL_POLL_INTERVAL);
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'likes'>('recent');
+  const [displayLimit, setDisplayLimit] = useState(4);
 
   // Refs
   const observer = useRef<IntersectionObserver | null>(null);
@@ -236,19 +237,37 @@ const MessageList: React.FC<MessageListProps> = ({
               return (b.likes || 0) - (a.likes || 0);
             }
           })
+          .slice(0, displayLimit)
           .map((message, index) => (
-          <div
-            key={message.id || index}
-            ref={index === messages.length - 1 ? lastMessageElementRef : null}
-          >
-            <MessageCard
-              message={message as SignedMessageWithProof}
-              isInternal={isInternal}
-            />
-          </div>
-        ))}
+            <div
+              key={message.id || index}
+              ref={index === messages.length - 1 ? lastMessageElementRef : null}
+            >
+              <MessageCard
+                message={message as SignedMessageWithProof}
+                isInternal={isInternal}
+              />
+            </div>
+          ))}
         {loading && renderLoading()}
         {!loading && !error && messages.length === 0 && renderNoMessages()}
+        
+        {/* Show More Button */}
+        {messages.length > displayLimit && (
+          <div className="text-center py-6 border-t border-slate-100">
+            <button
+              onClick={() => setDisplayLimit(prev => prev + 7)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 
+                       text-slate-600 font-medium rounded-xl hover:bg-slate-50 hover:border-slate-300 
+                       transition-all shadow-sm hover:shadow"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+              Show More Messages
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div className="error-message">{error}</div>}
