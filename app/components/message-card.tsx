@@ -16,12 +16,13 @@ import Head from "next/head";
 interface MessageCardProps {
   message: SignedMessageWithProof;
   isInternal?: boolean;
+  onLikeCountChange?: (messageId: string, count: number) => void;
 }
 
 type VerificationStatus = "idle" | "verifying" | "valid" | "invalid" | "error";
 
 
-const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
+const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal, onLikeCountChange }) => {
   const timeAgo = useRef(new TimeAgo("en-US")).current;
 
   const provider = Providers[message.anonGroupProvider];
@@ -51,6 +52,9 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
         
         setIsLiked(liked);
         setLikeCount(count);
+        if (onLikeCountChange) {
+          onLikeCountChange(message.id, count);
+        }
       } catch (error) {
         console.error('Failed to load like data:', error);
         // Fallback to local storage if server check fails
@@ -75,11 +79,12 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
       setMessageLiked(message.id, newIsLiked);
 
       // Toggle like on server
-      await toggleLike(message.id);
-      
-      // Refresh like count from server to ensure accuracy
-      const actualCount = await getLikeCount(message.id);
+      const result = await toggleLike(message.id);
+      const actualCount = result?.likeCount ?? (await getLikeCount(message.id));
       setLikeCount(actualCount);
+      if (onLikeCountChange) {
+        onLikeCountChange(message.id, actualCount);
+      }
     } catch (error) {
       console.error('Like toggle failed:', error);
       // Revert optimistic update

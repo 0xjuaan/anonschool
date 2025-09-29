@@ -101,7 +101,26 @@ async function postLike(req: NextApiRequest, res: NextApiResponse) {
       // Unlike
       await supabase.from("likes").delete().eq("message_id", messageId).eq("nullifier", hashedNullifierHex);
     }
-    return res.status(200).json({ liked: !existingLike });
+
+    // Recalculate total likes and persist on messages table for sorting
+    const { count, error: countError } = await supabase
+      .from("likes")
+      .select("*", { count: "exact", head: true })
+      .eq("message_id", messageId);
+
+    if (countError) {
+      console.error("❌ Error counting likes:", countError);
+    } else {
+      const { error: updateError } = await supabase
+        .from("messages")
+        .update({ likes: count || 0 })
+        .eq("id", messageId);
+      if (updateError) {
+        console.error("❌ Error updating message like count:", updateError);
+      }
+    }
+
+    return res.status(200).json({ liked: !existingLike, likeCount: count || 0 });
   } catch (error) {
     console.error("Error handling like:", error);
     return res.status(500).json({ error: "Internal Server Error" });

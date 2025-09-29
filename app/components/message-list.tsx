@@ -31,6 +31,7 @@ const MessageList: React.FC<MessageListProps> = ({
   const [pollInterval, setPollInterval] = useState(INITIAL_POLL_INTERVAL);
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'likes'>('recent');
   const [displayLimit, setDisplayLimit] = useState(4);
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   // Refs
   const observer = useRef<IntersectionObserver | null>(null);
@@ -138,6 +139,10 @@ const MessageList: React.FC<MessageListProps> = ({
     setMessages((prevMessages) => [signedMessage, ...prevMessages]);
   }
 
+  function handleLikeCountChange(messageId: string, count: number) {
+    setLikeCounts((prev) => ({ ...prev, [messageId]: count }));
+  }
+
   // Render helpers
   function renderLoading() {
     return (
@@ -234,7 +239,9 @@ const MessageList: React.FC<MessageListProps> = ({
               return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
             } else {
               // likes
-              return (b.likes || 0) - (a.likes || 0);
+              const aLikes = likeCounts[a.id!] ?? a.likes ?? 0;
+              const bLikes = likeCounts[b.id!] ?? b.likes ?? 0;
+              return bLikes - aLikes;
             }
           })
           .slice(0, displayLimit)
@@ -246,6 +253,7 @@ const MessageList: React.FC<MessageListProps> = ({
               <MessageCard
                 message={message as SignedMessageWithProof}
                 isInternal={isInternal}
+                onLikeCountChange={handleLikeCountChange}
               />
             </div>
           ))}

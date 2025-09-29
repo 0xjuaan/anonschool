@@ -288,7 +288,7 @@ export async function toggleLike(messageId: string) {
     }
 
     const data = await response.json();
-    return data.liked;
+    return { liked: data.liked as boolean, likeCount: (data.likeCount as number) ?? 0 };
   } catch (error) {
     throw error;
   }
