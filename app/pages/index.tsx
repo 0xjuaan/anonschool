@@ -16,7 +16,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Head>
-        <title>AnonSchool - Anonymous Posts</title>
+        <title>AnonSchool</title>
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.png?v=2" />
       </Head>
 
       <main className="flex-1 py-8 px-4 sm:py-12">

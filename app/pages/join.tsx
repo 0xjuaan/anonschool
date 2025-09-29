@@ -131,6 +131,7 @@ const JoinNSPage: React.FC = () => {
           name="description" 
           content="Join AnonSchool by verifying your Network School acceptance email with zero-knowledge proofs." 
         />
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.png?v=2" />
       </Head>
       {showEmlHelp && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -217,7 +218,9 @@ const JoinNSPage: React.FC = () => {
               </p>
             <a 
               href="/recover" 
-              className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-500 font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200
+                       text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 
+                       rounded-lg transition-all shadow-sm hover:shadow font-medium"
             >
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
