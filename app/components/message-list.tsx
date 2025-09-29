@@ -29,6 +29,7 @@ const MessageList: React.FC<MessageListProps> = ({
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState("");
   const [pollInterval, setPollInterval] = useState(INITIAL_POLL_INTERVAL);
+  const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'likes'>('recent');
 
   // Refs
   const observer = useRef<IntersectionObserver | null>(null);
@@ -187,8 +188,55 @@ const MessageList: React.FC<MessageListProps> = ({
         )
       )}
 
+      <div className="flex items-center justify-end px-4 py-2 border-b border-slate-200">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-500">Sort by:</span>
+          <button
+            onClick={() => setSortBy('recent')}
+            className={`px-3 py-1 rounded-md transition-colors ${
+              sortBy === 'recent'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'hover:bg-slate-100 text-slate-600'
+            }`}
+          >
+            Recent
+          </button>
+          <button
+            onClick={() => setSortBy('oldest')}
+            className={`px-3 py-1 rounded-md transition-colors ${
+              sortBy === 'oldest'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'hover:bg-slate-100 text-slate-600'
+            }`}
+          >
+            Oldest
+          </button>
+          <button
+            onClick={() => setSortBy('likes')}
+            className={`px-3 py-1 rounded-md transition-colors ${
+              sortBy === 'likes'
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'hover:bg-slate-100 text-slate-600'
+            }`}
+          >
+            Most Liked
+          </button>
+        </div>
+      </div>
+
       <div className="message-list" ref={messageListRef}>
-        {messages.map((message, index) => (
+        {[...messages]
+          .sort((a, b) => {
+            if (sortBy === 'recent') {
+              return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            } else if (sortBy === 'oldest') {
+              return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            } else {
+              // likes
+              return (b.likes || 0) - (a.likes || 0);
+            }
+          })
+          .map((message, index) => (
           <div
             key={message.id || index}
             ref={index === messages.length - 1 ? lastMessageElementRef : null}
