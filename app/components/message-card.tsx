@@ -216,7 +216,8 @@ const MessageCard: React.FC<MessageCardProps> = ({ message, isInternal }) => {
           {renderSender()}
         </div>
 
-        {renderVerificationStatus()}
+        {/* Verification feature coming soon */}
+        {/* {renderVerificationStatus()} */}
       </header>
 
       <main className="message-card-content">{message.text}</main>
