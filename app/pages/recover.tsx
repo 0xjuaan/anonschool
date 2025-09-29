@@ -97,7 +97,7 @@ const RecoverPage: React.FC = () => {
               Recover Your Account
             </h1>
             <p className="text-slate-600 text-lg">
-              Paste your secret key below to recover your account on this device.
+              Paste your secret key below to recover your existing account on this device.
             </p>
           </div>
 
@@ -106,12 +106,12 @@ const RecoverPage: React.FC = () => {
             <form onSubmit={onSubmit} className="space-y-6">
               <div>
                 <label htmlFor="secret" className="block text-sm font-semibold text-slate-700 mb-3">
-                  Secret Key
+                  Secret Key (shown after you joined)
                 </label>
                 <textarea
                   id="secret"
                   name="secret"
-                  placeholder="Paste your complete secret key here..."
+                  placeholder="Paste the complete secret key you saved when you joined..."
                   className="w-full h-32 px-4 py-3 border border-slate-300 rounded-xl font-mono text-sm
                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                            resize-none bg-slate-50"
